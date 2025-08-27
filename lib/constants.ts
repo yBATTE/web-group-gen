@@ -207,3 +207,83 @@ export const ABOUT_US = {
 
 
 
+//MENU
+
+
+// lib/constants.ts
+export type MenuItem = { name: string; desc?: string; price: string };
+export type MenuSection = { id: string; title: string; items: MenuItem[] };
+
+export const YPF_MENU_SECTIONS: MenuSection[] = [
+  {
+    id: "desayunos",
+    title: "Desayunos & Combos",
+    items: [
+      { name: "Clásico", desc: "Café + 2 medialunas", price: "$3.800" },
+      { name: "Power", desc: "Café con leche + tostado JyQ", price: "$6.900" },
+      { name: "Fit", desc: "Yogur + granola + fruta", price: "$5.200" },
+    ],
+  },
+  {
+    id: "cafeteria",
+    title: "Cafetería",
+    items: [
+      { name: "Espresso", price: "$1.500" },
+      { name: "Americano", price: "$1.600" },
+      { name: "Café con leche", price: "$1.900" },
+      { name: "Capuccino", price: "$2.300" },
+      { name: "Submarino", price: "$2.900" },
+    ],
+  },
+  {
+    id: "sandwiches",
+    title: "Sandwiches & Hamburguesas",
+    items: [
+      { name: "Jamón y Queso", desc: "Pan francés, tybo", price: "$3.900" },
+      { name: "Lomito completo", desc: "Lechuga, tomate, huevo", price: "$8.900" },
+      { name: "Hamburguesa simple", desc: "Carne 120g, cheddar", price: "$6.500" },
+      { name: "Hamburguesa completa", desc: "Cheddar, lechuga, tomate", price: "$7.800" },
+      { name: "Veggie grill", desc: "Medallón de legumbres + verdes", price: "$7.200" },
+    ],
+  },
+  {
+    id: "pizzas",
+    title: "Pizzas & Empanadas",
+    items: [
+      { name: "Pizza muzza (porción)", price: "$2.600" },
+      { name: "Pizza especial (porción)", price: "$3.100" },
+      { name: "Empanadas (c/u)", desc: "Carne / JyQ / Pollo / Humita", price: "$1.400" },
+    ],
+  },
+  {
+    id: "pasteleria",
+    title: "Pastelería",
+    items: [
+      { name: "Medialunas x2", price: "$2.400" },
+      { name: "Brownie", price: "$2.700" },
+      { name: "Budín porción", price: "$2.300" },
+      { name: "Tarta de manzana porción", price: "$2.900" },
+    ],
+  },
+  {
+    id: "bebidas",
+    title: "Bebidas frías",
+    items: [
+      { name: "Agua 500ml", price: "$1.200" },
+      { name: "Gaseosa 600ml", price: "$1.800" },
+      { name: "Jugo exprimido", price: "$2.800" },
+      { name: "Licuado", desc: "Frutilla / Banana / Durazno", price: "$3.600" },
+      { name: "Energizante 473ml", price: "$3.200" },
+    ],
+  },
+  {
+    id: "snacks",
+    title: "Snacks",
+    items: [
+      { name: "Chips", desc: "Clásicas / Onduladas", price: "$1.500" },
+      { name: "Mix frutos secos", price: "$2.200" },
+      { name: "Barra de cereal", price: "$900" },
+      { name: "Alfajor", price: "$1.200" },
+    ],
+  },
+];
