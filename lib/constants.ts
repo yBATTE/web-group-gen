@@ -77,7 +77,7 @@ export const STATIONS = [
     description:
       "Cuenta con Deck al aire libre y fuente de aguas danzantes.",
     image: "/combustiblescanning.jpg",
-    services: ["Combustible", "Tienda Full", "Venta de GNC", "Cajero automático"],
+    services: ["Combustible", "Tienda Full", "Venta de GNC", "Cajero automático", "Boxes"],
     mapsLink: "https://maps.app.goo.gl/fTmSdyr4WotAJcs96",
     lat: -34.9322363,
     lng: -58.4854614,
@@ -167,10 +167,10 @@ export const HERO_CONTENT = {
 // Contact Form Messages
 export const CONTACT_MESSAGES = {
   success: "¡Mensaje enviado con éxito! ✅",
-  error: "No se pudo enviar el mensaje ❌",   // <-- AGREGAR
+  error: "No se pudo enviar el mensaje ❌",
   sending: "Enviando...",
   send: "Enviar Mensaje",
-} as const;
+} as const
 
 // About Us Section Content
 export const ABOUT_US = {
@@ -205,85 +205,176 @@ export const ABOUT_US = {
   ],
 }
 
+/* =========================
+   MENÚ
+========================= */
 
+export type MenuItem = { name: string; desc?: string; price: string }
+export type MenuSection = { id: string; title: string; items: MenuItem[] }
 
-//MENU
+export type PromoItem = {
+  id: string
+  mediaUrl: string
+  mediaType: "image" | "video"
+  title?: string
+  subtitle?: string
+  ctaText?: string
+  ctaHref?: string
+}
 
-
-// lib/constants.ts
-export type MenuItem = { name: string; desc?: string; price: string };
-export type MenuSection = { id: string; title: string; items: MenuItem[] };
+export const PROMOS: PromoItem[] = [
+  {
+    id: "p1",
+    mediaUrl: "/tamanioscafe.png",
+    mediaType: "image",
+    title: "Disfrutá de beneficios todos los días",
+    subtitle: "Pagá con la app y sumá puntos",
+    ctaText: "Ver descuentos",
+    ctaHref: "",
+  },
+  { id: "p2", mediaUrl: "/croisant.png", mediaType: "image", title: "Promo Ypf" },
+  { id: "p3", mediaUrl: "/avocadotoast.png", mediaType: "image" },
+  { id: "p4", mediaUrl: "/comboshamburguesas.png", mediaType: "image", title: "" },
+]
 
 export const YPF_MENU_SECTIONS: MenuSection[] = [
-  {
-    id: "desayunos",
-    title: "Desayunos & Combos",
-    items: [
-      { name: "Clásico", desc: "Café + 2 medialunas", price: "$3.800" },
-      { name: "Power", desc: "Café con leche + tostado JyQ", price: "$6.900" },
-      { name: "Fit", desc: "Yogur + granola + fruta", price: "$5.200" },
-    ],
-  },
+  /* Cafetería + combos del póster */
   {
     id: "cafeteria",
     title: "Cafetería",
     items: [
-      { name: "Espresso", price: "$1.500" },
-      { name: "Americano", price: "$1.600" },
-      { name: "Café con leche", price: "$1.900" },
-      { name: "Capuccino", price: "$2.300" },
-      { name: "Submarino", price: "$2.900" },
+      // Del póster (placeholder de precio "$0" para que edites)
+      { name: "Café jarrito +2 facturas", price: "$5.000" },
+      { name: "Café jarrito +3 facturas", price: "$6.000" },
+      { name: "Café c/leche +2 facturas", price: "$5.900" },
+      { name: "Café c/leche +3 facturas", price: "$6.900" },
+      { name: "Tazón café c/leche +2 facturas", price: "$6.200" },
+      { name: "Tazón café c/leche +3 facturas", price: "$7.300" },
+    ],
+  },
+    {
+    id: "cafes",
+    title: "Cafés",
+    items: [
+      { name: "Capuccino", price: "$4.000" },
+      { name: "Submarino", price: "$4.200" },
+      { name: "Latte Vainilla", price: "$5.000" },
+      { name: "Latte Caramel", price: "$5.000" },
+      { name: "Cafe Chico", price: "$2.800" },
+      { name: "Cafe Jarrito", price: "$3.100" },
+      { name: "Café con leche", price: "$4.100" },
+      { name: "Tazon Cafe Con Leche", price: "$4.500" },
+    ],
+  },
+
+  /* Panadería (lado derecho del póster) */
+  {
+    id: "panaderia",
+    title: "Panadería",
+    items: [
+      { name: "Budín porción", price: "$3.350" },
+      { name: "Alfajor", price: "$3.250" },
+      { name: "Muffin simple", price: "$3.400" },
+      { name: "Muffin relleno", price: "$3.450" },
+      { name: "Chesscake", price: "$5.050" },
+      { name: "Croissant de jamón y queso", price: "$7.500" },
+      { name: "Trenzado de lomito y queso", price: "$6.900" },
+      { name: "Tostado", price: "$6.800" },
+    ],
+  },
+
+  {
+  id: "comidas",
+  title: "Comidas • Combos + bebida",
+  items: [
+    // PLATOS
+    { name: "Milanesa napolitana", desc: "Con papas rusticas y gaseosa", price: "$11.750" },
+    { name: "Pechuga de pollo",    desc: "Con arroz y gaseosa", price: "$11.750" },
+    { name: "Lasagna",             desc: "Con gaseosa",         price: "$11.750" },
+    { name: "Risotto de calabaza", desc: "Con gaseosa",         price: "$10.950" },
+    { name: "Carré de cerdo",          desc: "Con puré de batatas y gaseosa", price: "$11.750" },
+    { name: "Albóndigas portuguesas",  desc: "Con arroz y gaseosa",     price: "$11.750" },
+
+    // ROLLS
+    { name: "Roll Veggie", desc: "Con gaseosa", price: "$11.000" },
+    { name: "Roll Jamón y Queso", desc: "Con gaseosa", price: "$11.000" },
+    { name: "Roll Pollo", desc: "Con gaseosa", price: "$11.000" },
+    { name: "Roll Peceto", desc: "Con gaseosa", price: "$11.000" },
+
+    // HAMBURGUESAS
+    { name: "Hamburguesa con queso",  desc: "Con papas y gaseosa", price: "$11.500" },
+    { name: "Hamburguesa doble",      desc: "Con papas", price: "$12.800" },
+
+    // SANDWICHES Y CIABATTAS
+    { name: "Ciabatta jamón y queso", price: "$10.050" },
+    { name: "Ciabatta multicereal",   price: "$9.750" },
+    { name: "Sándwich de milanesa",   desc: "Con papas y gaseosa", price: "$14.000" },
+  ],
+},
+
+
+  {
+    id: "hamburguesas",
+    title: "Hamburguesas",
+    items: [
+      // 👇 Primeras 3 → aparecen debajo del primer póster
+      { name: "Hamburguesa magna", desc: "Palta, panceta y cheddar", price: "$15.400" },
+      { name: "Hamburguesa de campo", desc: "Panceta, Cheddar y salsa chipotle", price: "$14.900" },
+      { name: "Gran Hamburguesa", desc: "Panceta, huevo, cheddar y salsa BBQ", price: "$14.900" },
+
+      // 👇 Segundas 3 → aparecen debajo del segundo póster
+      { name: "Doble queso y huevo", desc: "Cheddar, huevo, tomate y lechuga", price: "$13.600" },
+      { name: "Doble y triple max", desc: "Salsa picante, cheddar y jalapeños", price: "$14.900/$15.700" },
+      { name: "Not Chicken Crispy", desc: "Barbacoa o palta", price: "$14.850" },
+
+      // 👇 Terceras 3 → aparecen debajo del tercer póster
+    { name: "Hamburguesa con queso",  desc: "Con papas y gaseosa", price: "$11.500" },
+    { name: "Hamburguesa doble",      desc: "Con papas", price: "$12.800" },
+    // 👇 Cuartas 3 → aparecen debajo del cuarto póster
+
     ],
   },
   {
-    id: "sandwiches",
-    title: "Sandwiches & Hamburguesas",
+    id: "hamburguesapollo",
+    title: "Hamburguesas de pollo",
     items: [
-      { name: "Jamón y Queso", desc: "Pan francés, tybo", price: "$3.900" },
-      { name: "Lomito completo", desc: "Lechuga, tomate, huevo", price: "$8.900" },
-      { name: "Hamburguesa simple", desc: "Carne 120g, cheddar", price: "$6.500" },
-      { name: "Hamburguesa completa", desc: "Cheddar, lechuga, tomate", price: "$7.800" },
-      { name: "Veggie grill", desc: "Medallón de legumbres + verdes", price: "$7.200" },
-    ],
+    { name: "Hamburguesa Deluxe", desc: "Palta, panceta y cheddar", price: "$11.300" },
+    { name: "Hamburguesa Simple", desc: "Lechuga tomate y cheddar", price: "$10.300" },
+    ]
   },
   {
-    id: "pizzas",
-    title: "Pizzas & Empanadas",
+    id: "ensaladas",
+    title: "Ensaladas",
     items: [
-      { name: "Pizza muzza (porción)", price: "$2.600" },
-      { name: "Pizza especial (porción)", price: "$3.100" },
-      { name: "Empanadas (c/u)", desc: "Carne / JyQ / Pollo / Humita", price: "$1.400" },
-    ],
-  },
-  {
-    id: "pasteleria",
-    title: "Pastelería",
-    items: [
-      { name: "Medialunas x2", price: "$2.400" },
-      { name: "Brownie", price: "$2.700" },
-      { name: "Budín porción", price: "$2.300" },
-      { name: "Tarta de manzana porción", price: "$2.900" },
+      { name: "Ensalada Caesar", desc: "Pechuga grille, panceta y parmesano", price: "$11.500" },
+      { name: "Ensalada Chef", desc: "Lechuga criolla y morada, jamon cocido, queso y huevo duro", price: "$11.500" },
     ],
   },
   {
     id: "bebidas",
     title: "Bebidas frías",
     items: [
-      { name: "Agua 500ml", price: "$1.200" },
-      { name: "Gaseosa 600ml", price: "$1.800" },
-      { name: "Jugo exprimido", price: "$2.800" },
-      { name: "Licuado", desc: "Frutilla / Banana / Durazno", price: "$3.600" },
-      { name: "Energizante 473ml", price: "$3.200" },
+      { name: "Agua 500ml", price: "$2.450" },
+      { name: "Gaseosa 600ml", price: "$2.200" },
+      { name: "Jugo exprimido", price: "$5.000" },
+      { name: "Monster 473ml", price: "$4.370" },
+      { name: "Red Bull 250ml", price: "$4.600" },
     ],
   },
-  {
-    id: "snacks",
-    title: "Snacks",
-    items: [
-      { name: "Chips", desc: "Clásicas / Onduladas", price: "$1.500" },
-      { name: "Mix frutos secos", price: "$2.200" },
-      { name: "Barra de cereal", price: "$900" },
-      { name: "Alfajor", price: "$1.200" },
-    ],
-  },
-];
+]
+
+/* =========================
+   MENÚ - TABS VISIBLES (orden fijo)
+========================= */
+
+// ⚠️ Asegurate de que los ids de abajo EXISTAN en YPF_MENU_SECTIONS
+export const MENU_TABS: { id: string; label: string }[] = [
+  { id: "cafeteria",     label: "Cafetería" },
+  { id: "cafes",         label: "Cafés" },
+  { id: "panaderia",     label: "Panadería" },
+  { id: "comidas",       label: "Comidas • Combos + bebida" },
+  { id: "hamburguesas",  label: "Hamburguesas" },
+  { id: "ensaladas",     label: "Ensaladas" },
+  { id: "bebidas",       label: "Bebidas frías" },
+  // { id: "snacks",     label: "Snacks" }, // ← lo dejamos fuera a propósito
+]
