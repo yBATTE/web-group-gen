@@ -1,14 +1,31 @@
+// app/ypf-menu/page.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import {
-  YPF_MENU_SECTIONS,
-  PROMOS,
-  type MenuSection,
-  type PromoItem,
-} from "@/lib/constants";
+import { useEffect, useMemo, useState } from "react"
+
+// datos (mock / fallback)
+import { DEFAULT_MENU, PROMOS } from "@/lib/menu-data"
+
+// tipos (los correctos con chunkSize incluido)
+import type { MenuSection } from "@/lib/menu-types"
+import type { PromoItem } from "@/lib/menu-data"   // este sí lo podés seguir tomando de ahí
 
 /* ------------ utils ------------ */
+
+// --- formateo de precio (soporta rango: 14900-15700, 14900/15700, 14900 – 15700)
+function formatPriceDisplay(raw: string) {
+  if (!raw) return "";
+  const val = raw.replace(/\s+/g, "");
+  if (val.includes("/") || val.includes("-")) {
+    const [a, b] = val.split(/[\/-]/);
+    const fa = Number(a).toLocaleString("es-AR");
+    const fb = Number(b).toLocaleString("es-AR");
+    return `$ ${fa} – ${fb}`;
+  }
+  return `$ ${Number(val).toLocaleString("es-AR")}`;
+}
+
+
 function driveImage(url: string) {
   const id =
     url.match(/\/d\/([^/]+)/)?.[1] ||
@@ -22,7 +39,8 @@ function OrientationOverlay() {
   const [landscape, setLandscape] = useState(false);
   useEffect(() => {
     const mq = window.matchMedia("(orientation: landscape)");
-    const onChange = () => setLandscape(mq.matches && window.innerWidth <= 1024);
+    const onChange = () =>
+      setLandscape(mq.matches && window.innerWidth <= 1024);
     onChange();
     mq.addEventListener?.("change", onChange);
     window.addEventListener("resize", onChange);
@@ -41,16 +59,26 @@ function OrientationOverlay() {
 }
 
 /* ---------------- Carrusel promos (solo imágenes) ---------------- */
-function PromoCarousel({ items, intervalMs = 5000 }: { items: PromoItem[]; intervalMs?: number }) {
+function PromoCarousel({
+  items,
+  intervalMs = 5000,
+}: {
+  items: PromoItem[];
+  intervalMs?: number;
+}) {
   const images = useMemo(
-    () => items.filter(Boolean).map((it) => ({ ...it, src: driveImage(it.mediaUrl) })),
+    () =>
+      items.filter(Boolean).map((it) => ({ ...it, src: driveImage(it.mediaUrl) })),
     [items]
   );
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
     if (images.length <= 1) return;
-    const t = setInterval(() => setIndex((i) => (i + 1) % images.length), intervalMs);
+    const t = setInterval(
+      () => setIndex((i) => (i + 1) % images.length),
+      intervalMs
+    );
     return () => clearInterval(t);
   }, [images.length, intervalMs]);
 
@@ -78,8 +106,14 @@ function PromoCarousel({ items, intervalMs = 5000 }: { items: PromoItem[]; inter
               {(item.title || item.subtitle || (item.ctaText && item.ctaHref)) && (
                 <div className="absolute inset-x-0 bottom-0 p-4">
                   <div className="max-w-xl rounded-xl bg-black/55 text-white p-3">
-                    {item.title && <h3 className="text-lg font-semibold leading-tight">{item.title}</h3>}
-                    {item.subtitle && <p className="text-sm opacity-90 mt-1">{item.subtitle}</p>}
+                    {item.title && (
+                      <h3 className="text-lg font-semibold leading-tight">
+                        {item.title}
+                      </h3>
+                    )}
+                    {item.subtitle && (
+                      <p className="text-sm opacity-90 mt-1">{item.subtitle}</p>
+                    )}
                     {item.ctaText && item.ctaHref && (
                       <a
                         href={item.ctaHref}
@@ -117,7 +151,9 @@ function PromoCarousel({ items, intervalMs = 5000 }: { items: PromoItem[]; inter
 function Section({ section }: { section: MenuSection }) {
   return (
     <section id={section.id} className="max-w-3xl mx-auto px-4 py-8 scroll-mt-20">
-      <h2 className="text-2xl font-semibold tracking-tight mb-4">{section.title}</h2>
+      <h2 className="text-2xl font-semibold tracking-tight mb-4">
+        {section.title}
+      </h2>
       <ul className="rounded-2xl bg-white shadow-sm ring-1 ring-black/5 divide-y divide-neutral-200">
         {section.items.map((it, i) => (
           <li key={i} className="flex items-start justify-between gap-4 p-4">
@@ -125,7 +161,9 @@ function Section({ section }: { section: MenuSection }) {
               <p className="font-medium leading-tight">{it.name}</p>
               {it.desc && <p className="text-sm text-neutral-500">{it.desc}</p>}
             </div>
-            <span className="font-semibold tabular-nums whitespace-nowrap">{it.price}</span>
+            <span className="font-semibold tabular-nums whitespace-nowrap">
+              {formatPriceDisplay(it.price)}
+            </span>
           </li>
         ))}
       </ul>
@@ -133,16 +171,16 @@ function Section({ section }: { section: MenuSection }) {
   );
 }
 
-/* ------------- Pósters múltiples + lista en bloques (3/3/3...) ------------- */
+/* ------------- Pósters múltiples + lista en bloques (usa chunkSize de la sección) ------------- */
 function MenuSectionPosterMulti({
   section,
   posterSrcs,
-  chunkSize = 3,
+  chunkSize,
   posterAlt = section.title,
 }: {
   section: MenuSection;
   posterSrcs: string[];
-  chunkSize?: number;
+  chunkSize: number;       // <- viene decidido arriba (DB o fallback)
   posterAlt?: string;
 }) {
   const chunks: typeof section.items[] = [];
@@ -153,7 +191,9 @@ function MenuSectionPosterMulti({
   return (
     <section id={section.id} className="scroll-mt-20">
       <div className="mx-auto max-w-3xl px-4 py-8">
-        <h2 className="text-2xl font-semibold tracking-tight mb-4">{section.title}</h2>
+        <h2 className="text-2xl font-semibold tracking-tight mb-4">
+          {section.title}
+        </h2>
 
         {chunks.map((itemsChunk, idx) => (
           <div key={idx} className="mb-7 last:mb-0">
@@ -174,9 +214,13 @@ function MenuSectionPosterMulti({
                   <li key={i} className="flex items-start justify-between gap-4 p-4">
                     <div>
                       <p className="font-medium leading-tight">{it.name}</p>
-                      {it.desc && <p className="text-sm text-neutral-500">{it.desc}</p>}
+                      {it.desc && (
+                        <p className="text-sm text-neutral-500">{it.desc}</p>
+                      )}
                     </div>
-                    <span className="font-semibold tabular-nums whitespace-nowrap">{it.price}</span>
+                    <span className="font-semibold tabular-nums whitespace-nowrap">
+                      {formatPriceDisplay(it.price)}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -192,25 +236,56 @@ function MenuSectionPosterMulti({
 export default function YpfMenuPage() {
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const tabs = useMemo(() => YPF_MENU_SECTIONS.map((s) => ({ id: s.id, label: s.title })), []);
+  // Estado con lo que venga de /api/menu, fallback a DEFAULT_MENU
+  const [sections, setSections] = useState<MenuSection[]>(DEFAULT_MENU);
 
-  // Config de posters por sección (agregá/quité imágenes según necesites)
-  const POSTERS: Record<string, { posterSrcs: string[]; chunkSize?: number }> = {
-    cafeteria: { posterSrcs: ["/listadocafeteria.png"], chunkSize: 6 },
-    comidas: { posterSrcs: ["/listadocomida.png"], chunkSize: 20 },
-    panaderia: { posterSrcs: ["/listadopanaderia.png"], chunkSize: 8 },
+  // Cargar menú desde la API (sin caché)
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/menu", { cache: "no-store" });
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data?.sections)) {
+            setSections(data.sections as MenuSection[]);
+          }
+        }
+      } catch {
+        // si falla, queda DEFAULT_MENU
+      }
+    })();
+  }, []);
+
+  // Tabs dinámicos
+  const tabs = useMemo(
+    () => sections.map((s) => ({ id: s.id, label: s.title })),
+    [sections]
+  );
+
+  // Solo guardamos posters aquí.
+  const POSTERS: Record<string, { posterSrcs: string[] }> = {
+    cafeteria: { posterSrcs: ["/listadocafeteria.png"] },
+    comidas: { posterSrcs: ["/listadocomida.png"] },
+    panaderia: { posterSrcs: ["/listadopanaderia.png"] },
     hamburguesas: {
-      posterSrcs: ["/comboshamburguesas.png", "/comboshamburguesas2.png", "/comboshamburguesas3.png"],
-      chunkSize: 3,
+      posterSrcs: [
+        "/comboshamburguesas.png",
+        "/comboshamburguesas2.png",
+        "/comboshamburguesas3.png",
+      ],
     },
-    hamburguesapollo: {
-      posterSrcs: ["/comboshamburguesas4.png"],
-      chunkSize: 6,
-    },
-    ensaladas: {
-      posterSrcs: ["/ensaladas.png"],
-      chunkSize: 6,
-    },
+    hamburguesapollo: { posterSrcs: ["/comboshamburguesas4.png"] },
+    ensaladas: { posterSrcs: ["/ensaladas.png"] },
+  };
+
+  // Fallbacks de chunkSize por id si la sección NO trae valor desde DB
+  const DEFAULT_CHUNK_BY_ID: Record<string, number> = {
+    hamburguesas: 3,
+    comidas: 20,
+    panaderia: 8,
+    cafeteria: 6,
+    hamburguesapollo: 6,
+    ensaladas: 6,
   };
 
   const scrollTo = (id: string) => {
@@ -222,7 +297,7 @@ export default function YpfMenuPage() {
     <>
       <OrientationOverlay />
 
-      {/* Header FIJO (no sticky). El layout ya deja el espacio arriba. */}
+      {/* Header fijo */}
       <header
         className="fixed top-0 left-0 right-0 z-50 bg-[#0033A0] text-white shadow"
         style={{ paddingTop: "env(safe-area-inset-top)" }}
@@ -239,7 +314,7 @@ export default function YpfMenuPage() {
         </div>
       </header>
 
-      {/* Backdrop + sheet con transición */}
+      {/* Backdrop + sheet */}
       <div
         className={`fixed inset-0 z-40 transition-opacity duration-200 ${
           menuOpen ? "opacity-100 bg-black/40" : "pointer-events-none opacity-0 bg-black/0"
@@ -281,14 +356,17 @@ export default function YpfMenuPage() {
         <PromoCarousel items={PROMOS} intervalMs={5000} />
       </section>
 
-      {YPF_MENU_SECTIONS.map((section) => {
-        const cfg = POSTERS[section.id];
-        return cfg ? (
+      {sections.map((section) => {
+        const posters = POSTERS[section.id]?.posterSrcs ?? [];
+        // 1) usa chunkSize de la DB; 2) fallback por id; 3) 3 por defecto
+        const chunk = section.chunkSize ?? DEFAULT_CHUNK_BY_ID[section.id] ?? 3;
+
+        return posters.length ? (
           <MenuSectionPosterMulti
             key={section.id}
             section={section}
-            posterSrcs={cfg.posterSrcs}
-            chunkSize={cfg.chunkSize ?? 3}
+            posterSrcs={posters}
+            chunkSize={chunk}
           />
         ) : (
           <Section key={section.id} section={section} />

@@ -1,6 +1,6 @@
 "use client"
 
-import { ABOUT_US } from "@/lib/constants"
+import { ABOUT_US } from "@/lib/site-data"
 import { Target, Eye, Heart } from "lucide-react"
 
 export default function AboutUsSection() {

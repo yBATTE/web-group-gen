@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { MapPin, Navigation } from "lucide-react"
-import { STATIONS } from "@/lib/constants"
+import { STATIONS } from "@/lib/site-data"
 
 export default function StationsSection() {
   const [selectedStation, setSelectedStation] = useState<(typeof STATIONS)[0] | null>(null)

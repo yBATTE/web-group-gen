@@ -3,7 +3,7 @@
 import { MapPin, Phone, Mail, Facebook, Twitter, Instagram, Linkedin } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { COMPANY_INFO, SOCIAL_MEDIA, FOOTER_LINKS, LEGAL_LINKS } from "@/lib/constants"
+import { COMPANY_INFO, SOCIAL_MEDIA, FOOTER_LINKS, LEGAL_LINKS } from "@/lib/site-data"
 
 export default function Footer() {
   const pathname = usePathname()

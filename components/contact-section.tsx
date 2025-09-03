@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { MapPin, Phone, MessageCircle } from "lucide-react"
-import { COMPANY_INFO, CONTACT_MESSAGES } from "@/lib/constants"
+import { COMPANY_INFO, CONTACT_MESSAGES } from "@/lib/site-data"
 
 import emailjs from "@emailjs/browser"
 import Toastify from "toastify-js"

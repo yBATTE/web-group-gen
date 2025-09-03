@@ -1,6 +1,6 @@
 "use client"
 
-import type { MenuSection } from "@/lib/constants"
+import type { MenuSection } from "@/lib/menu-data"
 
 export default function MenuSectionPosterStack({
   section,

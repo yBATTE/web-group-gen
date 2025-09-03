@@ -3,7 +3,7 @@
 import { useRef, useState, MouseEvent } from "react"
 import { Button } from "@/components/ui/button"
 import { Menu, X } from "lucide-react"
-import { COMPANY_INFO, NAVIGATION_LINKS } from "@/lib/constants"
+import { COMPANY_INFO, NAVIGATION_LINKS } from "@/lib/site-data"
 import { ThemeToggle } from "./theme-toggle"
 
 // Animación suave manual (ignora reduced-motion si querés)

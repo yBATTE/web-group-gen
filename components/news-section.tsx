@@ -1,6 +1,6 @@
 "use client"
 
-import { NEWS } from "@/lib/constants"
+import { NEWS } from "@/lib/site-data"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Calendar } from "lucide-react"

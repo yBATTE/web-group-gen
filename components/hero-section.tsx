@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { HERO_CONTENT } from "@/lib/constants"
+import { HERO_CONTENT } from "@/lib/site-data"
 
 export default function HeroSection() {
   const scrollToStations = () => {
