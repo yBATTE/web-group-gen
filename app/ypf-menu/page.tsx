@@ -1,30 +1,37 @@
 // app/ypf-menu/page.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react";
 
 // datos (mock / fallback)
-import { DEFAULT_MENU, PROMOS } from "@/lib/menu-data"
+import { DEFAULT_MENU, PROMOS } from "@/lib/menu-data";
 
 // tipos (los correctos con chunkSize incluido)
-import type { MenuSection } from "@/lib/menu-types"
-import type { PromoItem } from "@/lib/menu-data"   // este sí lo podés seguir tomando de ahí
+import type { MenuSection } from "@/lib/menu-types";
+import type { PromoItem } from "@/lib/menu-data";
 
 /* ------------ utils ------------ */
 
-// --- formateo de precio (soporta rango: 14900-15700, 14900/15700, 14900 – 15700)
-function formatPriceDisplay(raw: string) {
-  if (!raw) return "";
-  const val = raw.replace(/\s+/g, "");
-  if (val.includes("/") || val.includes("-")) {
-    const [a, b] = val.split(/[\/-]/);
-    const fa = Number(a).toLocaleString("es-AR");
-    const fb = Number(b).toLocaleString("es-AR");
-    return `$ ${fa} – ${fb}`;
-  }
-  return `$ ${Number(val).toLocaleString("es-AR")}`;
-}
+const nf = new Intl.NumberFormat("es-AR");
 
+/** Formatea string de precio seguro. Soporta "14900" o "14900/15700". */
+function formatPriceSafe(value: unknown): string {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+
+  // rango con "/"
+  if (raw.includes("/")) {
+    const parts = raw.split("/").map((p) => p.replace(/[^\d]/g, ""));
+    const valids = parts.filter((p) => p.length > 0);
+    if (!valids.length) return "";
+    return "$ " + valids.map((p) => nf.format(Number(p))).join(" / ");
+  }
+
+  // normal
+  const digits = raw.replace(/[^\d]/g, "");
+  if (!digits) return "";
+  return "$ " + nf.format(Number(digits));
+}
 
 function driveImage(url: string) {
   const id =
@@ -32,6 +39,15 @@ function driveImage(url: string) {
     url.match(/[?&]id=([^&]+)/)?.[1] ||
     url.match(/[?&]fileId=([^&]+)/)?.[1];
   return id ? `https://drive.google.com/uc?export=view&id=${id}` : url;
+}
+
+/* -------- Loader overlay -------- */
+function PageSpinner() {
+  return (
+    <div className="fixed inset-0 z-[60] bg-white/70 backdrop-blur-sm flex items-center justify-center">
+      <div className="h-10 w-10 rounded-full border-2 border-[#0033A0] border-t-transparent animate-spin" />
+    </div>
+  );
 }
 
 /* -------- Bloqueo “amistoso” en landscape -------- */
@@ -68,7 +84,9 @@ function PromoCarousel({
 }) {
   const images = useMemo(
     () =>
-      items.filter(Boolean).map((it) => ({ ...it, src: driveImage(it.mediaUrl) })),
+      items
+        .filter(Boolean)
+        .map((it) => ({ ...it, src: driveImage(it.mediaUrl) })),
     [items]
   );
   const [index, setIndex] = useState(0);
@@ -150,7 +168,10 @@ function PromoCarousel({
 /* ---------------- Lista simple por sección ---------------- */
 function Section({ section }: { section: MenuSection }) {
   return (
-    <section id={section.id} className="max-w-3xl mx-auto px-4 py-8 scroll-mt-20">
+    <section
+      id={section.id}
+      className="max-w-3xl mx-auto px-4 py-8 scroll-mt-20"
+    >
       <h2 className="text-2xl font-semibold tracking-tight mb-4">
         {section.title}
       </h2>
@@ -162,7 +183,7 @@ function Section({ section }: { section: MenuSection }) {
               {it.desc && <p className="text-sm text-neutral-500">{it.desc}</p>}
             </div>
             <span className="font-semibold tabular-nums whitespace-nowrap">
-              {formatPriceDisplay(it.price)}
+              {formatPriceSafe(it.price) || " "}
             </span>
           </li>
         ))}
@@ -180,7 +201,7 @@ function MenuSectionPosterMulti({
 }: {
   section: MenuSection;
   posterSrcs: string[];
-  chunkSize: number;       // <- viene decidido arriba (DB o fallback)
+  chunkSize: number;
   posterAlt?: string;
 }) {
   const chunks: typeof section.items[] = [];
@@ -211,7 +232,10 @@ function MenuSectionPosterMulti({
             {!!itemsChunk.length && (
               <ul className="mt-5 rounded-2xl bg-white shadow-sm ring-1 ring-black/5 divide-y divide-neutral-200">
                 {itemsChunk.map((it, i) => (
-                  <li key={i} className="flex items-start justify-between gap-4 p-4">
+                  <li
+                    key={i}
+                    className="flex items-start justify-between gap-4 p-4"
+                  >
                     <div>
                       <p className="font-medium leading-tight">{it.name}</p>
                       {it.desc && (
@@ -219,7 +243,7 @@ function MenuSectionPosterMulti({
                       )}
                     </div>
                     <span className="font-semibold tabular-nums whitespace-nowrap">
-                      {formatPriceDisplay(it.price)}
+                      {formatPriceSafe(it.price) || " "}
                     </span>
                   </li>
                 ))}
@@ -236,8 +260,9 @@ function MenuSectionPosterMulti({
 export default function YpfMenuPage() {
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // Estado con lo que venga de /api/menu, fallback a DEFAULT_MENU
-  const [sections, setSections] = useState<MenuSection[]>(DEFAULT_MENU);
+  // ahora arrancamos "vacío" y mostramos loader; si la API falla, usamos DEFAULT_MENU
+  const [sections, setSections] = useState<MenuSection[] | null>(null);
+  const [loading, setLoading] = useState(true);
 
   // Cargar menú desde la API (sin caché)
   useEffect(() => {
@@ -248,17 +273,23 @@ export default function YpfMenuPage() {
           const data = await res.json();
           if (Array.isArray(data?.sections)) {
             setSections(data.sections as MenuSection[]);
+          } else {
+            setSections(DEFAULT_MENU);
           }
+        } else {
+          setSections(DEFAULT_MENU);
         }
       } catch {
-        // si falla, queda DEFAULT_MENU
+        setSections(DEFAULT_MENU);
+      } finally {
+        setLoading(false);
       }
     })();
   }, []);
 
   // Tabs dinámicos
   const tabs = useMemo(
-    () => sections.map((s) => ({ id: s.id, label: s.title })),
+    () => (sections ?? []).map((s) => ({ id: s.id, label: s.title })),
     [sections]
   );
 
@@ -290,7 +321,9 @@ export default function YpfMenuPage() {
 
   const scrollTo = (id: string) => {
     setMenuOpen(false);
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    document
+      .getElementById(id)
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   return (
@@ -317,7 +350,9 @@ export default function YpfMenuPage() {
       {/* Backdrop + sheet */}
       <div
         className={`fixed inset-0 z-40 transition-opacity duration-200 ${
-          menuOpen ? "opacity-100 bg-black/40" : "pointer-events-none opacity-0 bg-black/0"
+          menuOpen
+            ? "opacity-100 bg-black/40"
+            : "pointer-events-none opacity-0 bg-black/0"
         }`}
         onClick={() => setMenuOpen(false)}
       />
@@ -356,7 +391,11 @@ export default function YpfMenuPage() {
         <PromoCarousel items={PROMOS} intervalMs={5000} />
       </section>
 
-      {sections.map((section) => {
+      {/* loader overlay */}
+      {loading && <PageSpinner />}
+
+      {/* secciones */}
+      {(sections ?? []).map((section) => {
         const posters = POSTERS[section.id]?.posterSrcs ?? [];
         // 1) usa chunkSize de la DB; 2) fallback por id; 3) 3 por defecto
         const chunk = section.chunkSize ?? DEFAULT_CHUNK_BY_ID[section.id] ?? 3;
