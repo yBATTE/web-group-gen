@@ -6,15 +6,16 @@ import { useEffect, useMemo, useState } from "react";
 // datos (mock / fallback)
 import { DEFAULT_MENU, PROMOS } from "@/lib/menu-data";
 
-// tipos (los correctos con chunkSize incluido)
+// tipos (incluye chunkSize por sección)
 import type { MenuSection } from "@/lib/menu-types";
 import type { PromoItem } from "@/lib/menu-data";
 
 /* ------------ utils ------------ */
 
 const nf = new Intl.NumberFormat("es-AR");
+const MENU_CACHE_KEY = "menu-cache-v1";
 
-/** Formatea string de precio seguro. Soporta "14900" o "14900/15700". */
+/** Formatea precio seguro. Soporta "14900" o "14900/15700". */
 function formatPriceSafe(value: unknown): string {
   const raw = String(value ?? "").trim();
   if (!raw) return "";
@@ -41,14 +42,23 @@ function driveImage(url: string) {
   return id ? `https://drive.google.com/uc?export=view&id=${id}` : url;
 }
 
-/* -------- Loader overlay -------- */
-function PageSpinner() {
-  return (
-    <div className="fixed inset-0 z-[60] bg-white/70 backdrop-blur-sm flex items-center justify-center">
-      <div className="h-10 w-10 rounded-full border-2 border-[#0033A0] border-t-transparent animate-spin" />
-    </div>
-  );
-}
+// cache helpers
+const getCachedMenu = (): MenuSection[] | null => {
+  try {
+    const raw = localStorage.getItem(MENU_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return null;
+    return parsed as MenuSection[];
+  } catch {
+    return null;
+  }
+};
+const setCachedMenu = (sections: MenuSection[]) => {
+  try {
+    localStorage.setItem(MENU_CACHE_KEY, JSON.stringify(sections));
+  } catch {}
+};
 
 /* -------- Bloqueo “amistoso” en landscape -------- */
 function OrientationOverlay() {
@@ -70,6 +80,33 @@ function OrientationOverlay() {
     <div className="fixed inset-0 z-[100] bg-[#0033A0] text-white flex flex-col items-center justify-center p-6 text-center">
       <div className="text-2xl font-bold mb-2">Girá el teléfono</div>
       <p className="opacity-90">Este menú está optimizado para vertical.</p>
+    </div>
+  );
+}
+
+/* -------- Skeleton corto para primera carga sin caché -------- */
+function TinySkeleton() {
+  return (
+    <div className="max-w-3xl mx-auto px-4 py-6">
+      {[0, 1].map((s) => (
+        <div key={s} className="mb-6">
+          <div className="h-5 w-40 bg-neutral-200 rounded mb-3 animate-pulse" />
+          <div className="rounded-2xl bg-white ring-1 ring-black/5 divide-y divide-neutral-200">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="p-4 flex items-center justify-between gap-4"
+              >
+                <div className="flex-1">
+                  <div className="h-4 w-48 bg-neutral-200 rounded animate-pulse" />
+                  <div className="h-3 w-32 bg-neutral-100 rounded mt-2 animate-pulse" />
+                </div>
+                <div className="h-4 w-16 bg-neutral-200 rounded animate-pulse" />
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -260,12 +297,25 @@ function MenuSectionPosterMulti({
 export default function YpfMenuPage() {
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // ahora arrancamos "vacío" y mostramos loader; si la API falla, usamos DEFAULT_MENU
+  // arranca con cache si existe (render instantáneo). Si no hay, null → skeleton corto
   const [sections, setSections] = useState<MenuSection[] | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showTinyLoader, setShowTinyLoader] = useState(false); // puntito en header si tarda
 
-  // Cargar menú desde la API (sin caché)
+  // Cargar desde cache y refrescar API (sin caché)
   useEffect(() => {
+    // 1) intenta cache
+    const cached = getCachedMenu();
+    if (cached && cached.length) {
+      setSections(cached);
+    }
+
+    // 2) loader diferido (solo si tarda >150ms)
+    let timer: number | undefined;
+    setLoading(true);
+    timer = window.setTimeout(() => setShowTinyLoader(true), 150);
+
+    // 3) fetch a la API
     (async () => {
       try {
         const res = await fetch("/api/menu", { cache: "no-store" });
@@ -273,18 +323,28 @@ export default function YpfMenuPage() {
           const data = await res.json();
           if (Array.isArray(data?.sections)) {
             setSections(data.sections as MenuSection[]);
+            setCachedMenu(data.sections as MenuSection[]);
           } else {
+            // si vino algo raro, usa fallback (y cachealo para la próxima)
             setSections(DEFAULT_MENU);
+            setCachedMenu(DEFAULT_MENU);
           }
         } else {
           setSections(DEFAULT_MENU);
+          setCachedMenu(DEFAULT_MENU);
         }
       } catch {
-        setSections(DEFAULT_MENU);
+        setSections((prev) => prev ?? DEFAULT_MENU);
       } finally {
         setLoading(false);
+        setShowTinyLoader(false);
+        if (timer) window.clearTimeout(timer);
       }
     })();
+
+    return () => {
+      if (timer) window.clearTimeout(timer);
+    };
   }, []);
 
   // Tabs dinámicos
@@ -293,7 +353,7 @@ export default function YpfMenuPage() {
     [sections]
   );
 
-  // Solo guardamos posters aquí.
+  // posters por sección (solo aquí)
   const POSTERS: Record<string, { posterSrcs: string[] }> = {
     cafeteria: { posterSrcs: ["/listadocafeteria.png"] },
     comidas: { posterSrcs: ["/listadocomida.png"] },
@@ -336,7 +396,15 @@ export default function YpfMenuPage() {
         style={{ paddingTop: "env(safe-area-inset-top)" }}
       >
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-          <h1 className="text-lg font-semibold">YPF • Menú</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-lg font-semibold">YPF • Menú</h1>
+            {showTinyLoader && (
+              <span
+                className="inline-block h-2 w-2 rounded-full bg-white/80 animate-pulse"
+                aria-label="cargando"
+              />
+            )}
+          </div>
           <button
             onClick={() => setMenuOpen(true)}
             aria-label="Abrir secciones"
@@ -391,26 +459,27 @@ export default function YpfMenuPage() {
         <PromoCarousel items={PROMOS} intervalMs={5000} />
       </section>
 
-      {/* loader overlay */}
-      {loading && <PageSpinner />}
+      {/* Si está cargando y NO había cache → skeleton corto */}
+      {loading && !getCachedMenu() ? (
+        <TinySkeleton />
+      ) : (
+        (sections ?? []).map((section) => {
+          const posters = POSTERS[section.id]?.posterSrcs ?? [];
+          // 1) usa chunkSize de la DB; 2) fallback por id; 3) 3 por defecto
+          const chunk = section.chunkSize ?? DEFAULT_CHUNK_BY_ID[section.id] ?? 3;
 
-      {/* secciones */}
-      {(sections ?? []).map((section) => {
-        const posters = POSTERS[section.id]?.posterSrcs ?? [];
-        // 1) usa chunkSize de la DB; 2) fallback por id; 3) 3 por defecto
-        const chunk = section.chunkSize ?? DEFAULT_CHUNK_BY_ID[section.id] ?? 3;
-
-        return posters.length ? (
-          <MenuSectionPosterMulti
-            key={section.id}
-            section={section}
-            posterSrcs={posters}
-            chunkSize={chunk}
-          />
-        ) : (
-          <Section key={section.id} section={section} />
-        );
-      })}
+          return posters.length ? (
+            <MenuSectionPosterMulti
+              key={section.id}
+              section={section}
+              posterSrcs={posters}
+              chunkSize={chunk}
+            />
+          ) : (
+            <Section key={section.id} section={section} />
+          );
+        })
+      )}
 
       <footer className="max-w-5xl mx-auto px-4 py-8 text-center text-xs text-neutral-500">
         © {new Date().getFullYear()} Grupo GEN – Estaciones YPF
