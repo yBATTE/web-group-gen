@@ -161,7 +161,9 @@ function PromoCarousel({
                 />
               </div>
 
-              {(item.title || item.subtitle || (item.ctaText && item.ctaHref)) && (
+              {(item.title ||
+                item.subtitle ||
+                (item.ctaText && item.ctaHref)) && (
                 <div className="absolute inset-x-0 bottom-0 p-4">
                   <div className="max-w-xl rounded-xl bg-black/55 text-white p-3">
                     {item.title && (
@@ -208,7 +210,10 @@ function PromoCarousel({
 /* ---------------- Lista simple ---------------- */
 function Section({ section }: { section: MenuSection }) {
   return (
-    <section id={section.id} className="max-w-3xl mx-auto px-4 py-8 scroll-mt-20">
+    <section
+      id={section.id}
+      className="max-w-3xl mx-auto px-4 py-8 scroll-mt-20"
+    >
       <h2 className="text-2xl font-semibold tracking-tight mb-4">
         {section.title}
       </h2>
@@ -241,7 +246,7 @@ function MenuSectionPosterMulti({
   chunkSize: number;
   posterAlt?: string;
 }) {
-  const chunks: typeof section.items[] = [];
+  const chunks: (typeof section.items)[] = [];
   for (let i = 0; i < section.items.length; i += chunkSize) {
     chunks.push(section.items.slice(i, i + chunkSize));
   }
@@ -323,7 +328,9 @@ export default function YpfMenuPage() {
 
   // Cargar desde cache y refrescar API
   useEffect(() => {
-    try { localStorage.setItem(STATION_KEY, station); } catch {}
+    try {
+      localStorage.setItem(STATION_KEY, station);
+    } catch {}
 
     const cached = getCachedMenu(station);
     if (cached && cached.length) setSections(cached);
@@ -420,29 +427,16 @@ export default function YpfMenuPage() {
         style={{ paddingTop: "env(safe-area-inset-top)" }}
       >
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
+          {/* Título y estación */}
+          <h1 className="text-base sm:text-lg font-semibold whitespace-nowrap">
+            YPF • Menú{" "}
+            <span className="ml-1 text-xs sm:text-sm opacity-80">
+              ({stationName})
+            </span>
+          </h1>
+
+          {/* Botón menú secciones */}
           <div className="flex items-center gap-2">
-            <h1 className="text-lg font-semibold">YPF • Menú</h1>
-            <span className="text-xs opacity-80">({stationName})</span>
-            {showTinyLoader && (
-              <span
-                className="inline-block h-2 w-2 rounded-full bg-white/80 animate-pulse"
-                aria-label="cargando"
-              />
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <select
-              value={station}
-              onChange={(e) => onStationChange(e.target.value as StationSlug)}
-              className="text-[#0033A0] rounded-md px-2 py-1"
-              title="Estación"
-            >
-              {STATIONS.map((s) => (
-                <option key={s.slug} value={s.slug}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
             <button
               onClick={() => setMenuOpen(true)}
               aria-label="Abrir secciones"
@@ -457,7 +451,9 @@ export default function YpfMenuPage() {
       {/* Backdrop + sheet */}
       <div
         className={`fixed inset-0 z-40 transition-opacity duration-200 ${
-          menuOpen ? "opacity-100 bg-black/40" : "pointer-events-none opacity-0 bg-black/0"
+          menuOpen
+            ? "opacity-100 bg-black/40"
+            : "pointer-events-none opacity-0 bg-black/0"
         }`}
         onClick={() => setMenuOpen(false)}
       />
