@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import type { MenuSection, MenuItem } from "@/lib/menu-types";
+import { STATIONS, type StationSlug } from "@/lib/stations";
 
 type ApiDoc = {
-  _id: "menu";
+  _id: string;
   sections: MenuSection[];
   updatedAt?: string;
 };
@@ -17,13 +18,7 @@ const toNumber = (v: unknown, def = 3) => {
   const n = Number(v);
   return Number.isFinite(n) ? n : def;
 };
-
 const onlyDigits = (v: unknown) => String(v ?? "").replace(/[^\d]/g, "");
-const formatPrice = (v: unknown) => {
-  const d = onlyDigits(v);
-  if (!d) return "";
-  return "$ " + new Intl.NumberFormat("es-AR").format(Number(d));
-};
 
 const EMPTY_ITEM: MenuItem = { name: "", desc: "", price: "" };
 const EMPTY_SECTION = (): MenuSection => ({
@@ -33,20 +28,40 @@ const EMPTY_SECTION = (): MenuSection => ({
   items: [],
 });
 
+const STATION_KEY = "station-slug";
+
 /* ========================================================= */
 export default function PreciosPage() {
-  // protege la página
   const { status } = useSession({ required: true });
+
+  // estación seleccionada (persistida)
+  const [station, setStation] = useState<StationSlug>(
+    (typeof window !== "undefined" &&
+      (localStorage.getItem(STATION_KEY) as StationSlug)) ||
+      STATIONS[0].slug
+  );
 
   const [sections, setSections] = useState<MenuSection[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const stationName = useMemo(
+    () => STATIONS.find((s) => s.slug === station)?.name ?? "",
+    [station]
+  );
 
   /* -------- carga del menú -------- */
   useEffect(() => {
+    localStorage.setItem(STATION_KEY, station);
     const load = async () => {
+      setLoading(true);
+      setError(null);
+      setSections(null);
       try {
-        const res = await fetch("/api/menu", { cache: "no-store" });
+        const res = await fetch(`/api/menu?station=${station}`, {
+          cache: "no-store",
+        });
         const json: ApiDoc | null = await res.json();
         if (!res.ok) throw new Error((json as any)?.error || res.statusText);
 
@@ -59,7 +74,7 @@ export default function PreciosPage() {
             ? s.items.map((it) => ({
                 name: it.name || "",
                 desc: it.desc || "",
-                price: onlyDigits(it.price), // normalizo a dígitos
+                price: String(it.price ?? ""), // permitimos "/" también
               }))
             : [],
         }));
@@ -67,10 +82,12 @@ export default function PreciosPage() {
       } catch (e: any) {
         console.error(e);
         setError(e?.message ?? "Error al cargar el menú");
+      } finally {
+        setLoading(false);
       }
     };
     load();
-  }, []);
+  }, [station]);
 
   /* -------- handlers de edición -------- */
   const changeSec = (idx: number, patch: Partial<MenuSection>) => {
@@ -142,7 +159,7 @@ export default function PreciosPage() {
     });
   };
 
-  /* -------- guardar con validación -------- */
+  /* -------- guardar -------- */
   const save = async () => {
     if (!sections) return;
     setSaving(true);
@@ -155,12 +172,12 @@ export default function PreciosPage() {
           items: s.items.map((it) => ({
             name: it.name || "",
             desc: it.desc || "",
-            price: it.price || "", // 👈 se guarda tal cual, sin validar
+            price: String(it.price ?? ""), // se guarda tal cual (admite "14900/15700")
           })),
         })),
       };
 
-      const res = await fetch("/api/menu", {
+      const res = await fetch(`/api/menu?station=${station}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -181,6 +198,7 @@ export default function PreciosPage() {
 
   return (
     <div style={{ maxWidth: 1000, margin: "0 auto", padding: 16 }}>
+      {/* selector de estación */}
       <div
         style={{
           display: "flex",
@@ -189,7 +207,26 @@ export default function PreciosPage() {
           gap: 12,
         }}
       >
-        <h1>Editar precios</h1>
+        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <h1>Editar precios</h1>
+          <select
+            value={station}
+            onChange={(e) => setStation(e.target.value as StationSlug)}
+            style={{
+              padding: "8px 10px",
+              borderRadius: 8,
+              border: "1px solid #d1d5db",
+            }}
+            title="Estación"
+          >
+            {STATIONS.map((s) => (
+              <option key={s.slug} value={s.slug}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div style={{ display: "flex", gap: 8 }}>
           <button
             onClick={addSection}
@@ -216,10 +253,12 @@ export default function PreciosPage() {
         </div>
       </div>
 
-      {error && (
-        <p style={{ color: "crimson", marginTop: 8 }}>Error: {error}</p>
-      )}
-      {!error && sections === null && (
+      <p style={{ marginTop: 4, color: "#6b7280" }}>
+        Estación: <strong>{stationName}</strong>
+      </p>
+
+      {error && <p style={{ color: "crimson", marginTop: 8 }}>Error: {error}</p>}
+      {!error && (loading || sections === null) && (
         <p style={{ marginTop: 8 }}>Cargando menú…</p>
       )}
 
@@ -387,74 +426,64 @@ export default function PreciosPage() {
               </div>
 
               {/* items */}
-              {sec.items.map((it, ii) => {
-                const priceInvalid = !onlyDigits(it.price);
-
-                return (
-                  <div
-                    key={`${sec.id}_${ii}`}
+              {sec.items.map((it, ii) => (
+                <div
+                  key={`${sec.id}_${ii}`}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1.2fr 1.4fr 0.6fr 96px",
+                    gap: 12,
+                    marginTop: 10,
+                  }}
+                >
+                  <input
+                    value={it.name ?? ""}
+                    onChange={(e) => changeItem(si, ii, { name: e.target.value })}
+                    placeholder="Nombre…"
                     style={{
-                      display: "grid",
-                      gridTemplateColumns: "1.2fr 1.4fr 0.6fr 96px",
-                      gap: 12,
-                      marginTop: 10,
+                      width: "100%",
+                      padding: 10,
+                      border: "1px solid #d1d5db",
+                      borderRadius: 10,
+                    }}
+                  />
+                  <input
+                    value={it.desc ?? ""}
+                    onChange={(e) => changeItem(si, ii, { desc: e.target.value })}
+                    placeholder="Descripción…"
+                    style={{
+                      width: "100%",
+                      padding: 10,
+                      border: "1px solid #d1d5db",
+                      borderRadius: 10,
+                    }}
+                  />
+                  <input
+                    type="text"
+                    value={it.price ?? ""}
+                    onChange={(e) => changeItem(si, ii, { price: e.target.value })}
+                    placeholder="14900 o 14900/15700"
+                    style={{
+                      width: "100%",
+                      padding: 10,
+                      border: "1px solid #d1d5db",
+                      borderRadius: 10,
+                    }}
+                  />
+
+                  <button
+                    onClick={() => removeItem(si, ii)}
+                    style={{
+                      background: "#fee2e2",
+                      color: "#b91c1c",
+                      borderRadius: 10,
+                      padding: "10px 12px",
                     }}
                   >
-                    <input
-                      value={it.name ?? ""}
-                      onChange={(e) =>
-                        changeItem(si, ii, { name: e.target.value })
-                      }
-                      placeholder="Nombre…"
-                      style={{
-                        width: "100%",
-                        padding: 10,
-                        border: "1px solid #d1d5db",
-                        borderRadius: 10,
-                      }}
-                    />
-                    <input
-                      value={it.desc ?? ""}
-                      onChange={(e) =>
-                        changeItem(si, ii, { desc: e.target.value })
-                      }
-                      placeholder="Descripción…"
-                      style={{
-                        width: "100%",
-                        padding: 10,
-                        border: "1px solid #d1d5db",
-                        borderRadius: 10,
-                      }}
-                    />
-                    <input
-                      type="text" // 👈 queda en texto, no "number"
-                      value={it.price ?? ""}
-                      onChange={(e) =>
-                        changeItem(si, ii, { price: e.target.value })
-                      }
-                      placeholder="$0.00"
-                      style={{
-                        width: "100%",
-                        padding: 10,
-                        border: "1px solid #d1d5db",
-                        borderRadius: 10,
-                      }}
-                    />
-
-                    <button
-                      onClick={() => removeItem(si, ii)}
-                      style={{
-                        background: "#fee2e2",
-                        color: "#b91c1c",
-                        borderRadius: 10,
-                        padding: "10px 12px",
-                      }}
-                    >
-                      borrar
-                    </button>
-                  </div>
-                );
-              })}
+                    borrar
+                  </button>
+                </div>
+              ))}
 
               <div style={{ marginTop: 12 }}>
                 <button
