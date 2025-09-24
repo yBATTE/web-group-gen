@@ -6,5 +6,6 @@ export const STATIONS = [
   { slug: "tobago-i", name: "TOBAGO I" },
   { slug: "tobago-ii", name: "TOBAGO II" },
   { slug: "bettica-sa", name: "BETTICA SA" },
+  { slug: "delivery", name: "DELIVERY" },
 ] as const;
 export type StationSlug = typeof STATIONS[number]["slug"];

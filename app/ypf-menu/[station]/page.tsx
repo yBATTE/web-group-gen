@@ -35,6 +35,14 @@ function driveImage(url: string) {
   return id ? `https://drive.google.com/uc?export=view&id=${id}` : url;
 }
 
+const cleanId = (raw: string) =>
+  String(raw ?? "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\w-]+/g, "")
+    .toLowerCase()
+    .trim();
+
 // cache helpers
 const getCachedMenu = (station: StationSlug): MenuSection[] | null => {
   try {
@@ -303,16 +311,13 @@ export default function YpfMenuPage() {
   const params = useParams<{ station: string }>();
   const router = useRouter();
 
-  // slug desde la URL (validado)
   const urlStation = normalizeStation(params?.station);
   const [station, setStation] = useState<StationSlug>(urlStation);
 
-  // si cambia la URL, sincronizamos el estado
   useEffect(() => {
     setStation(urlStation);
   }, [urlStation]);
 
-  // si alguien entra con slug inválido, redirigimos al default
   useEffect(() => {
     const normalized = normalizeStation(params?.station);
     if (normalized !== params?.station) {
@@ -324,9 +329,7 @@ export default function YpfMenuPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [sections, setSections] = useState<MenuSection[] | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showTinyLoader, setShowTinyLoader] = useState(false);
 
-  // Cargar desde cache y refrescar API
   useEffect(() => {
     try {
       localStorage.setItem(STATION_KEY, station);
@@ -334,10 +337,6 @@ export default function YpfMenuPage() {
 
     const cached = getCachedMenu(station);
     if (cached && cached.length) setSections(cached);
-
-    let timer: number | undefined;
-    setLoading(true);
-    timer = window.setTimeout(() => setShowTinyLoader(true), 150);
 
     (async () => {
       try {
@@ -361,23 +360,11 @@ export default function YpfMenuPage() {
         setSections((prev) => prev ?? DEFAULT_MENU);
       } finally {
         setLoading(false);
-        setShowTinyLoader(false);
-        if (timer) window.clearTimeout(timer);
       }
     })();
-
-    return () => {
-      if (timer) window.clearTimeout(timer);
-    };
   }, [station]);
 
-  // Tabs dinámicos
-  const tabs = useMemo(
-    () => (sections ?? []).map((s) => ({ id: s.id, label: s.title })),
-    [sections]
-  );
-
-  // posters por sección
+  /* --------- Filtros/overrides por estación --------- */
   const POSTERS: Record<string, { posterSrcs: string[] }> = {
     cafeteria: { posterSrcs: ["/listadocafeteria.png"] },
     cafeteriafull: { posterSrcs: ["/productosFull.jpg"] },
@@ -394,6 +381,15 @@ export default function YpfMenuPage() {
     ensaladas: { posterSrcs: ["/ensaladas.png"] },
   };
 
+  const POSTERS_BY_STATION: Partial<
+    Record<StationSlug, Record<string, { posterSrcs: string[] }>>
+  > = {
+    delivery: {
+      cafeteria: { posterSrcs: [] },
+      cafeteriafull: { posterSrcs: [] },
+    },
+  };
+
   const DEFAULT_CHUNK_BY_ID: Record<string, number> = {
     hamburguesas: 3,
     comidas: 20,
@@ -402,6 +398,29 @@ export default function YpfMenuPage() {
     hamburguesapollo: 6,
     ensaladas: 6,
   };
+
+  const visibleSections = useMemo(() => {
+    let list = sections ?? [];
+    if (station === "delivery") {
+      const HIDE = new Set(["cafeteria", "cafeteriafull"]);
+      list = list.filter((s) => !HIDE.has(cleanId(s.id)));
+    }
+    return list;
+  }, [sections, station]);
+
+  const tabs = useMemo(
+    () => (visibleSections ?? []).map((s) => ({ id: s.id, label: s.title })),
+    [visibleSections]
+  );
+
+  // PROMOS por estación: en delivery, vacío para ocultar carrusel
+  const PROMOS_BY_STATION: Partial<Record<StationSlug, PromoItem[]>> = {
+    delivery: [],
+  };
+  const promos: PromoItem[] =
+    PROMOS_BY_STATION.hasOwnProperty(station)
+      ? (PROMOS_BY_STATION[station] ?? [])
+      : PROMOS;
 
   const scrollTo = (id: string) => {
     setMenuOpen(false);
@@ -412,23 +431,16 @@ export default function YpfMenuPage() {
 
   const stationName = STATIONS.find((s) => s.slug === station)?.name ?? "";
 
-  // cambiar estación desde el select => cambia la URL
-  const onStationChange = (slug: StationSlug) => {
-    if (slug === station) return;
-    router.replace(`/ypf-menu/${slug}`);
-  };
-
   return (
     <>
       <OrientationOverlay />
 
-      {/* Header fijo */}
+      {/* Header */}
       <header
         className="fixed top-0 left-0 right-0 z-50 bg-[#0033A0] text-white shadow"
         style={{ paddingTop: "env(safe-area-inset-top)" }}
       >
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-          {/* Título y estación */}
           <h1 className="text-base sm:text-lg font-semibold whitespace-nowrap">
             YPF • Menú{" "}
             <span className="ml-1 text-xs sm:text-sm opacity-80">
@@ -436,7 +448,6 @@ export default function YpfMenuPage() {
             </span>
           </h1>
 
-          {/* Botón menú secciones */}
           <div className="flex items-center gap-2">
             <button
               onClick={() => setMenuOpen(true)}
@@ -488,19 +499,41 @@ export default function YpfMenuPage() {
         </div>
       </div>
 
-      {/* Promos */}
-      <section className="py-4">
-        <PromoCarousel items={PROMOS} intervalMs={5000} />
-      </section>
+      {/* Promos: sólo si hay para la estación */}
+      {promos.length > 0 && (
+        <section className="py-4">
+          <PromoCarousel items={promos} intervalMs={5000} />
+        </section>
+      )}
 
       {/* Contenido / skeleton */}
       {loading && !getCachedMenu(station) ? (
         <TinySkeleton />
       ) : (
-        (sections ?? []).map((section) => {
-          const posters = POSTERS[section.id]?.posterSrcs ?? [];
+        (visibleSections ?? []).map((section) => {
+          const key = cleanId(section.id);
+
+          // 1) desde DB si tu API manda `posters`
+          const postersFromDb: string[] = ((section as any).posters ?? []).map(
+            (p: string) => driveImage(p)
+          );
+
+          // 2) override por estación
+          const postersStation =
+            POSTERS_BY_STATION[station]?.[key]?.posterSrcs ?? [];
+
+          // 3) fallback global
+          const postersFallback = POSTERS[key]?.posterSrcs ?? [];
+
+          const posters =
+            postersFromDb.length > 0
+              ? postersFromDb
+              : postersStation.length > 0
+              ? postersStation
+              : postersFallback;
+
           const chunk =
-            section.chunkSize ?? DEFAULT_CHUNK_BY_ID[section.id] ?? 3;
+            (section as any).chunkSize ?? DEFAULT_CHUNK_BY_ID[key] ?? 3;
 
           return posters.length ? (
             <MenuSectionPosterMulti
