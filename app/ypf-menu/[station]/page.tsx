@@ -380,6 +380,7 @@ export default function YpfMenuPage() {
   // posters por sección
   const POSTERS: Record<string, { posterSrcs: string[] }> = {
     cafeteria: { posterSrcs: ["/listadocafeteria.png"] },
+    cafeteriafull: { posterSrcs: ["/productosFull.jpg"] },
     comidas: { posterSrcs: ["/listadocomida.png"] },
     panaderia: { posterSrcs: ["/listadopanaderia.png"] },
     hamburguesas: {

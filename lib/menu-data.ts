@@ -63,6 +63,21 @@ export const DEFAULT_MENU: MenuSection[] = [
       { name: "Tazon Cafe Con Leche", price: "$4.500" },
     ],
   },
+  {
+    id: "cafeteriafull",
+    title: "Cafetería • Productos",
+    items: [
+      { name: "Café Expreso", price: "$2.800" },
+      { name: "Café Americano", price: "$3.100" },
+      { name: "Café Cortado", price: "$3.100" },
+      { name: "Café con Leche", price: "$4.100" },
+      { name: "Café Latte", price: "$4.500" },
+      { name: "Cappuccino", price: "$4.000" },
+      { name: "Submarino", price: "$4.200" },
+      { name: "Mocaccino", price: "$5.000" },
+      { name: "Latte Vainilla", price: "$5.000" },
+    ]
+  },
 
   /* Panadería */
   {
@@ -182,6 +197,7 @@ export const MENU_POSTERS: Record<
   { posterSrcs: string[]; chunkSize?: number }
 > = {
   cafeteria: { posterSrcs: ["/listadocafeteria.png"], chunkSize: 6 },
+  cafetriafull: { posterSrcs: ["/productosFull.jpg"], chunkSize: 6 },
   comidas:   { posterSrcs: ["/listadocomida.png"],    chunkSize: 6 },
   hamburguesas: {
     posterSrcs: [
