@@ -5,27 +5,27 @@ export const COMPANY_INFO = {
   description:
     "Líderes en el sector energético argentino, comprometidos con brindar calidad y servicio excepcional en cada estación YPF.",
   address: {
-    street: "Av. Corrientes 1234, Piso 5",
+    street: "",
     city: "Buenos Aires",
     postalCode: "C1043AAZ",
     country: "Argentina",
-    full: "Av. Corrientes 1234, Piso 5, C1043AAZ, Buenos Aires, Argentina",
+    full: "",
   },
   contact: {
-    phone: "+54 11 2345-6789",
-    phoneDisplay: "+54 11 2345-6789",
-    whatsapp: "541123456789",
-    whatsappDisplay: "+54 11 2345-6789",
-    email: "info@grupogen.com.ar",
+    phone: "",
+    phoneDisplay: "",
+    whatsapp: "",
+    whatsappDisplay: "",
+    email: "",
   },
 }
 
 // Social Media Links
 export const SOCIAL_MEDIA = {
-  facebook: "https://facebook.com/grupogen",
-  twitter: "https://twitter.com/grupogen",
-  instagram: "https://instagram.com/grupogen",
-  linkedin: "https://linkedin.com/company/grupogen",
+  facebook: "",
+  twitter: "",
+  instagram: "",
+  linkedin: "",
 }
 
 // News Section Data
@@ -199,8 +199,8 @@ export const ABOUT_US = {
   },
   stats: [
     { number: "25+", label: "Años de experiencia" },
-    { number: "50+", label: "Estaciones de servicio" },
-    { number: "10M+", label: "Clientes satisfechos" },
+    { number: "", label: "" },
+      { number: "", label: "" },
     { number: "24/7", label: "Atención continua" },
   ],
 }
