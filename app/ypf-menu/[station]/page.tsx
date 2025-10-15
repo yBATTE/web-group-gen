@@ -216,6 +216,7 @@ function PromoCarousel({
 }
 
 /* ---------------- Lista simple ---------------- */
+// --- Section ---
 function Section({ section }: { section: MenuSection }) {
   return (
     <section
@@ -228,10 +229,19 @@ function Section({ section }: { section: MenuSection }) {
       <ul className="rounded-2xl bg-white shadow-sm ring-1 ring-black/5 divide-y divide-neutral-200">
         {section.items.map((it, i) => (
           <li key={i} className="flex items-start justify-between gap-4 p-4">
-            <div>
-              <p className="font-medium leading-tight">{it.name}</p>
-              {it.desc && <p className="text-sm text-neutral-500">{it.desc}</p>}
+            {/* 👇 clave: puede encogerse y cortar palabras/líneas */}
+            <div className="flex-1 min-w-0">
+              <p className="font-medium leading-tight break-words">{it.name}</p>
+              {it.desc && (
+                <p className="text-sm text-neutral-500 break-words whitespace-normal">
+                  {it.desc}
+                </p>
+              )}
+              {/* Si querés truncar a 2 líneas: 
+              <p className="text-sm text-neutral-500 break-words line-clamp-2">{it.desc}</p>
+              (necesita el plugin de line-clamp) */}
             </div>
+
             <span className="font-semibold tabular-nums whitespace-nowrap">
               {formatPriceSafe(it.price) || " "}
             </span>
@@ -282,16 +292,22 @@ function MenuSectionPosterMulti({
             {!!itemsChunk.length && (
               <ul className="mt-5 rounded-2xl bg-white shadow-sm ring-1 ring-black/5 divide-y divide-neutral-200">
                 {itemsChunk.map((it, i) => (
+                  // --- Dentro de MenuSectionPosterMulti, donde renderizás cada item ---
                   <li
                     key={i}
                     className="flex items-start justify-between gap-4 p-4"
                   >
-                    <div>
-                      <p className="font-medium leading-tight">{it.name}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium leading-tight break-words">
+                        {it.name}
+                      </p>
                       {it.desc && (
-                        <p className="text-sm text-neutral-500">{it.desc}</p>
+                        <p className="text-sm text-neutral-500 break-words whitespace-normal">
+                          {it.desc}
+                        </p>
                       )}
                     </div>
+
                     <span className="font-semibold tabular-nums whitespace-nowrap">
                       {formatPriceSafe(it.price) || " "}
                     </span>
@@ -418,10 +434,9 @@ export default function YpfMenuPage() {
   const PROMOS_BY_STATION: Partial<Record<StationSlug, PromoItem[]>> = {
     delivery: [],
   };
-  const promos: PromoItem[] =
-    PROMOS_BY_STATION.hasOwnProperty(station)
-      ? (PROMOS_BY_STATION[station] ?? [])
-      : PROMOS;
+  const promos: PromoItem[] = PROMOS_BY_STATION.hasOwnProperty(station)
+    ? PROMOS_BY_STATION[station] ?? []
+    : PROMOS;
 
   const scrollTo = (id: string) => {
     setMenuOpen(false);
