@@ -6,7 +6,7 @@ type Theme = "dark" | "light" | "system"
 
 type ThemeProviderProps = {
   children: React.ReactNode
-  defaultTheme?: 'light'
+  defaultTheme?: Theme
   storageKey?: string
 }
 
