@@ -179,3 +179,36 @@
 }
 
 html { scroll-behavior: smooth; }
+
+/* Hace que TODO lo de adentro se vea con UI clara, aun si el resto del sitio está en dark */
+.light-scope {
+  color-scheme: light;
+  background: #fff;              /* fondo claro para el contenedor */
+  color: #111827;                /* texto gris oscuro */
+}
+
+/* Controles de formulario en claro */
+.light-scope input,
+.light-scope select,
+.light-scope textarea,
+.light-scope button {
+  color-scheme: light;
+  background: #ffffff !important;
+  color: #111827 !important;
+  border-color: #d1d5db !important;
+}
+
+/* Placeholders legibles en claro */
+.light-scope ::placeholder {
+  color: #9ca3af;
+  opacity: 1;
+}
+
+/* Si hay estilos dark heredados, neutralizalos dentro del scope */
+.dark .light-scope {
+  background: #ffffff !important;
+  color: #111827 !important;
+}
+.dark .light-scope * {
+  --tw-ring-color: initial; /* por si usás Tailwind ring en dark */
+}

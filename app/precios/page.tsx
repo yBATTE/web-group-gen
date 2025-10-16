@@ -197,325 +197,349 @@ export default function PreciosPage() {
   if (status === "loading") return <p style={{ padding: 16 }}>Autenticando…</p>;
 
   return (
-    <div style={{ maxWidth: 1000, margin: "0 auto", padding: 16 }}>
-      {/* selector de estación */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: 12,
-        }}
-      >
-        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-          <h1>Editar precios</h1>
-          <select
-            value={station}
-            onChange={(e) => setStation(e.target.value as StationSlug)}
-            style={{
-              padding: "8px 10px",
-              borderRadius: 8,
-              border: "1px solid #d1d5db",
-            }}
-            title="Estación"
-          >
-            {STATIONS.map((s) => (
-              <option key={s.slug} value={s.slug}>
-                {s.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div style={{ display: "flex", gap: 8 }}>
-          <button
-            onClick={addSection}
-            style={{
-              background: "#10b981",
-              color: "white",
-              borderRadius: 8,
-              padding: "8px 12px",
-            }}
-          >
-            + Agregar sección
-          </button>
-          <button
-            onClick={() => signOut({ callbackUrl: "/precios/login" })}
-            style={{
-              background: "#ef4444",
-              color: "white",
-              borderRadius: 8,
-              padding: "8px 12px",
-            }}
-          >
-            Cerrar sesión
-          </button>
-        </div>
-      </div>
-
-      <p style={{ marginTop: 4, color: "#6b7280" }}>
-        Estación: <strong>{stationName}</strong>
-      </p>
-
-      {error && <p style={{ color: "crimson", marginTop: 8 }}>Error: {error}</p>}
-      {!error && (loading || sections === null) && (
-        <p style={{ marginTop: 8 }}>Cargando menú…</p>
-      )}
-
-      {Array.isArray(sections) &&
-        sections.map((sec, si) => {
-          const titleInvalid = !sec.title.trim();
-
-          return (
-            <div
-              key={sec.id}
+    <div className="light-scope" style={{ minHeight: "100dvh" }}>
+      <div style={{ maxWidth: 1000, margin: "0 auto", padding: 16 }}>
+        {/* selector de estación */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 12,
+          }}
+        >
+          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+            <h1>Editar precios</h1>
+            <select
+              value={station}
+              onChange={(e) => setStation(e.target.value as StationSlug)}
               style={{
-                marginTop: 28,
-                border: "1px solid #e5e7eb",
-                borderRadius: 12,
-                padding: 16,
+                padding: "8px 10px",
+                borderRadius: 8,
+                border: "1px solid #d1d5db",
+              }}
+              title="Estación"
+            >
+              {STATIONS.map((s) => (
+                <option key={s.slug} value={s.slug}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={addSection}
+              style={{
+                background: "#10b981",
+                color: "white",
+                borderRadius: 8,
+                padding: "8px 12px",
               }}
             >
+              + Agregar sección
+            </button>
+            <button
+              onClick={() => signOut({ callbackUrl: "/precios/login" })}
+              style={{
+                background: "#ef4444",
+                color: "white",
+                borderRadius: 8,
+                padding: "8px 12px",
+              }}
+            >
+              Cerrar sesión
+            </button>
+          </div>
+        </div>
+
+        <p style={{ marginTop: 4, color: "#6b7280" }}>
+          Estación: <strong>{stationName}</strong>
+        </p>
+
+        {error && (
+          <p style={{ color: "crimson", marginTop: 8 }}>Error: {error}</p>
+        )}
+        {!error && (loading || sections === null) && (
+          <p style={{ marginTop: 8 }}>Cargando menú…</p>
+        )}
+
+        {Array.isArray(sections) &&
+          sections.map((sec, si) => {
+            const titleInvalid = !sec.title.trim();
+
+            return (
               <div
+                key={sec.id}
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 280px 160px auto",
-                  gap: 12,
-                  alignItems: "center",
+                  marginTop: 28,
+                  border: "1px solid #e5e7eb",
+                  borderRadius: 12,
+                  padding: 16,
                 }}
               >
-                <div>
-                  <label
-                    style={{ display: "block", fontSize: 12, color: "#6b7280" }}
-                  >
-                    Título de la sección{" "}
-                    <span style={{ color: "#dc2626" }}>*</span>
-                  </label>
-                  <input
-                    value={sec.title ?? ""}
-                    onChange={(e) => changeSec(si, { title: e.target.value })}
-                    placeholder="Ej: Hamburguesas"
-                    style={{
-                      width: "100%",
-                      padding: 10,
-                      border: `1px solid ${
-                        titleInvalid ? "#ef4444" : "#d1d5db"
-                      }`,
-                      borderRadius: 10,
-                      background: titleInvalid ? "#fef2f2" : "white",
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label
-                    style={{ display: "block", fontSize: 12, color: "#6b7280" }}
-                  >
-                    ID (solo lectura)
-                  </label>
-                  <input
-                    value={sec.id ?? ""}
-                    readOnly
-                    style={{
-                      width: "100%",
-                      padding: 10,
-                      border: "1px solid #e5e7eb",
-                      background: "#f9fafb",
-                      borderRadius: 10,
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label
-                    style={{ display: "block", fontSize: 12, color: "#6b7280" }}
-                  >
-                    chunkSize
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={Number(sec.chunkSize ?? 3)}
-                    onChange={(e) =>
-                      changeSec(si, { chunkSize: toNumber(e.target.value, 3) })
-                    }
-                    style={{
-                      width: "100%",
-                      padding: 10,
-                      border: "1px solid #d1d5db",
-                      borderRadius: 10,
-                    }}
-                  />
-                </div>
-
                 <div
                   style={{
-                    alignSelf: "end",
-                    textAlign: "right",
-                    display: "flex",
-                    gap: 8,
+                    display: "grid",
+                    gridTemplateColumns: "1fr 280px 160px auto",
+                    gap: 12,
+                    alignItems: "center",
                   }}
                 >
-                  <button
-                    onClick={() => moveSection(si, si - 1)}
-                    disabled={si === 0}
-                    title="Subir sección"
-                    style={{
-                      background: si === 0 ? "#e5e7eb" : "#f3f4f6",
-                      color: "#111827",
-                      borderRadius: 10,
-                      padding: "10px 12px",
-                      cursor: si === 0 ? "not-allowed" : "pointer",
-                    }}
-                  >
-                    ↑
-                  </button>
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: 12,
+                        color: "#6b7280",
+                      }}
+                    >
+                      Título de la sección{" "}
+                      <span style={{ color: "#dc2626" }}>*</span>
+                    </label>
+                    <input
+                      value={sec.title ?? ""}
+                      onChange={(e) => changeSec(si, { title: e.target.value })}
+                      placeholder="Ej: Hamburguesas"
+                      style={{
+                        width: "100%",
+                        padding: 10,
+                        border: `1px solid ${
+                          titleInvalid ? "#ef4444" : "#d1d5db"
+                        }`,
+                        borderRadius: 10,
+                        background: titleInvalid ? "#fef2f2" : "white",
+                      }}
+                    />
+                  </div>
 
-                  <button
-                    onClick={() => moveSection(si, si + 1)}
-                    disabled={sections ? si === sections.length - 1 : true}
-                    title="Bajar sección"
-                    style={{
-                      background:
-                        sections && si === sections.length - 1
-                          ? "#e5e7eb"
-                          : "#f3f4f6",
-                      color: "#111827",
-                      borderRadius: 10,
-                      padding: "10px 12px",
-                      cursor:
-                        sections && si === sections.length - 1
-                          ? "not-allowed"
-                          : "pointer",
-                    }}
-                  >
-                    ↓
-                  </button>
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: 12,
+                        color: "#6b7280",
+                      }}
+                    >
+                      ID (solo lectura)
+                    </label>
+                    <input
+                      value={sec.id ?? ""}
+                      readOnly
+                      style={{
+                        width: "100%",
+                        padding: 10,
+                        border: "1px solid #e5e7eb",
+                        background: "#f9fafb",
+                        borderRadius: 10,
+                      }}
+                    />
+                  </div>
 
-                  <button
-                    onClick={() => removeSection(si)}
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: 12,
+                        color: "#6b7280",
+                      }}
+                    >
+                      chunkSize
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={Number(sec.chunkSize ?? 3)}
+                      onChange={(e) =>
+                        changeSec(si, {
+                          chunkSize: toNumber(e.target.value, 3),
+                        })
+                      }
+                      style={{
+                        width: "100%",
+                        padding: 10,
+                        border: "1px solid #d1d5db",
+                        borderRadius: 10,
+                      }}
+                    />
+                  </div>
+
+                  <div
                     style={{
-                      background: "#f3f4f6",
-                      color: "#111827",
-                      borderRadius: 10,
-                      padding: "10px 12px",
+                      alignSelf: "end",
+                      textAlign: "right",
+                      display: "flex",
+                      gap: 8,
                     }}
                   >
-                    Eliminar sección
-                  </button>
+                    <button
+                      onClick={() => moveSection(si, si - 1)}
+                      disabled={si === 0}
+                      title="Subir sección"
+                      style={{
+                        background: si === 0 ? "#e5e7eb" : "#f3f4f6",
+                        color: "#111827",
+                        borderRadius: 10,
+                        padding: "10px 12px",
+                        cursor: si === 0 ? "not-allowed" : "pointer",
+                      }}
+                    >
+                      ↑
+                    </button>
+
+                    <button
+                      onClick={() => moveSection(si, si + 1)}
+                      disabled={sections ? si === sections.length - 1 : true}
+                      title="Bajar sección"
+                      style={{
+                        background:
+                          sections && si === sections.length - 1
+                            ? "#e5e7eb"
+                            : "#f3f4f6",
+                        color: "#111827",
+                        borderRadius: 10,
+                        padding: "10px 12px",
+                        cursor:
+                          sections && si === sections.length - 1
+                            ? "not-allowed"
+                            : "pointer",
+                      }}
+                    >
+                      ↓
+                    </button>
+
+                    <button
+                      onClick={() => removeSection(si)}
+                      style={{
+                        background: "#f3f4f6",
+                        color: "#111827",
+                        borderRadius: 10,
+                        padding: "10px 12px",
+                      }}
+                    >
+                      Eliminar sección
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              {/* encabezados de tabla */}
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1.2fr 1.4fr 0.6fr 96px",
-                  gap: 12,
-                  marginTop: 16,
-                  fontSize: 13,
-                  color: "#6b7280",
-                }}
-              >
-                <div>Nombre</div>
-                <div>Descripción (opcional)</div>
-                <div>
-                  Precio <span style={{ color: "#dc2626" }}>*</span>
-                </div>
-                <div></div>
-              </div>
-
-              {/* items */}
-              {sec.items.map((it, ii) => (
+                {/* encabezados de tabla */}
                 <div
-                  key={`${sec.id}_${ii}`}
                   style={{
                     display: "grid",
                     gridTemplateColumns: "1.2fr 1.4fr 0.6fr 96px",
                     gap: 12,
-                    marginTop: 10,
+                    marginTop: 16,
+                    fontSize: 13,
+                    color: "#6b7280",
                   }}
                 >
-                  <input
-                    value={it.name ?? ""}
-                    onChange={(e) => changeItem(si, ii, { name: e.target.value })}
-                    placeholder="Nombre…"
-                    style={{
-                      width: "100%",
-                      padding: 10,
-                      border: "1px solid #d1d5db",
-                      borderRadius: 10,
-                    }}
-                  />
-                  <input
-                    value={it.desc ?? ""}
-                    onChange={(e) => changeItem(si, ii, { desc: e.target.value })}
-                    placeholder="Descripción…"
-                    style={{
-                      width: "100%",
-                      padding: 10,
-                      border: "1px solid #d1d5db",
-                      borderRadius: 10,
-                    }}
-                  />
-                  <input
-                    type="text"
-                    value={it.price ?? ""}
-                    onChange={(e) => changeItem(si, ii, { price: e.target.value })}
-                    placeholder="14900 o 14900/15700"
-                    style={{
-                      width: "100%",
-                      padding: 10,
-                      border: "1px solid #d1d5db",
-                      borderRadius: 10,
-                    }}
-                  />
+                  <div>Nombre</div>
+                  <div>Descripción (opcional)</div>
+                  <div>
+                    Precio <span style={{ color: "#dc2626" }}>*</span>
+                  </div>
+                  <div></div>
+                </div>
 
-                  <button
-                    onClick={() => removeItem(si, ii)}
+                {/* items */}
+                {sec.items.map((it, ii) => (
+                  <div
+                    key={`${sec.id}_${ii}`}
                     style={{
-                      background: "#fee2e2",
-                      color: "#b91c1c",
+                      display: "grid",
+                      gridTemplateColumns: "1.2fr 1.4fr 0.6fr 96px",
+                      gap: 12,
+                      marginTop: 10,
+                    }}
+                  >
+                    <input
+                      value={it.name ?? ""}
+                      onChange={(e) =>
+                        changeItem(si, ii, { name: e.target.value })
+                      }
+                      placeholder="Nombre…"
+                      style={{
+                        width: "100%",
+                        padding: 10,
+                        border: "1px solid #d1d5db",
+                        borderRadius: 10,
+                      }}
+                    />
+                    <input
+                      value={it.desc ?? ""}
+                      onChange={(e) =>
+                        changeItem(si, ii, { desc: e.target.value })
+                      }
+                      placeholder="Descripción…"
+                      style={{
+                        width: "100%",
+                        padding: 10,
+                        border: "1px solid #d1d5db",
+                        borderRadius: 10,
+                      }}
+                    />
+                    <input
+                      type="text"
+                      value={it.price ?? ""}
+                      onChange={(e) =>
+                        changeItem(si, ii, { price: e.target.value })
+                      }
+                      placeholder="14900 o 14900/15700"
+                      style={{
+                        width: "100%",
+                        padding: 10,
+                        border: "1px solid #d1d5db",
+                        borderRadius: 10,
+                      }}
+                    />
+
+                    <button
+                      onClick={() => removeItem(si, ii)}
+                      style={{
+                        background: "#fee2e2",
+                        color: "#b91c1c",
+                        borderRadius: 10,
+                        padding: "10px 12px",
+                      }}
+                    >
+                      borrar
+                    </button>
+                  </div>
+                ))}
+
+                <div style={{ marginTop: 12 }}>
+                  <button
+                    onClick={() => addItem(si)}
+                    style={{
+                      background: "#e0f2fe",
+                      color: "#075985",
                       borderRadius: 10,
                       padding: "10px 12px",
                     }}
                   >
-                    borrar
+                    + Agregar ítem
                   </button>
                 </div>
-              ))}
-
-              <div style={{ marginTop: 12 }}>
-                <button
-                  onClick={() => addItem(si)}
-                  style={{
-                    background: "#e0f2fe",
-                    color: "#075985",
-                    borderRadius: 10,
-                    padding: "10px 12px",
-                  }}
-                >
-                  + Agregar ítem
-                </button>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
 
-      <div style={{ marginTop: 24 }}>
-        <button
-          onClick={save}
-          disabled={!sections || saving}
-          style={{
-            background: "#2563eb",
-            color: "white",
-            borderRadius: 10,
-            padding: "12px 16px",
-            opacity: saving ? 0.7 : 1,
-          }}
-        >
-          {saving ? "Guardando..." : "Guardar cambios"}
-        </button>
+        <div style={{ marginTop: 24 }}>
+          <button
+            onClick={save}
+            disabled={!sections || saving}
+            style={{
+              background: "#2563eb",
+              color: "white",
+              borderRadius: 10,
+              padding: "12px 16px",
+              opacity: saving ? 0.7 : 1,
+            }}
+          >
+            {saving ? "Guardando..." : "Guardar cambios"}
+          </button>
+        </div>
       </div>
     </div>
   );
