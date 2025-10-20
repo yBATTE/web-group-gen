@@ -25,7 +25,7 @@ export const PROMOS: PromoItem[] = [
     title: "Disfrutá de beneficios todos los días",
     subtitle: "Pagá con la app y sumá puntos",
     ctaText: "Ver descuentos",
-    ctaHref: "#", // si no usás link, dejalo en "#" o quitá las props
+    ctaHref: "#descuentos", // si no usás link, dejalo en "#" o quitá las props
   },
   { id: "p2", mediaUrl: "/croisant.png", mediaType: "image", title: "Promo Ypf" },
   { id: "p3", mediaUrl: "/avocadotoast.png", mediaType: "image" },

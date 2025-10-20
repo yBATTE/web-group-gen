@@ -104,10 +104,7 @@ function TinySkeleton() {
           <div className="h-5 w-40 bg-neutral-200 rounded mb-3 animate-pulse" />
           <div className="rounded-2xl bg-white ring-1 ring-black/5 divide-y divide-neutral-200">
             {[0, 1, 2].map((i) => (
-              <div
-                key={i}
-                className="p-4 flex items-center justify-between gap-4"
-              >
+              <div key={i} className="p-4 flex items-center justify-between gap-4">
                 <div className="flex-1">
                   <div className="h-4 w-48 bg-neutral-200 rounded animate-pulse" />
                   <div className="h-3 w-32 bg-neutral-100 rounded mt-2 animate-pulse" />
@@ -216,20 +213,15 @@ function PromoCarousel({
 }
 
 /* ---------------- Lista simple ---------------- */
-// --- Section ---
 function Section({ section }: { section: MenuSection }) {
   return (
-    <section
-      id={section.id}
-      className="max-w-3xl mx-auto px-4 py-8 scroll-mt-20"
-    >
+    <section id={section.id} className="max-w-3xl mx-auto px-4 py-8 scroll-mt-20">
       <h2 className="text-2xl font-semibold tracking-tight mb-4">
         {section.title}
       </h2>
       <ul className="rounded-2xl bg-white shadow-sm ring-1 ring-black/5 divide-y divide-neutral-200">
         {section.items.map((it, i) => (
           <li key={i} className="flex items-start justify-between gap-4 p-4">
-            {/* 👇 clave: puede encogerse y cortar palabras/líneas */}
             <div className="flex-1 min-w-0">
               <p className="font-medium leading-tight break-words">{it.name}</p>
               {it.desc && (
@@ -237,11 +229,7 @@ function Section({ section }: { section: MenuSection }) {
                   {it.desc}
                 </p>
               )}
-              {/* Si querés truncar a 2 líneas: 
-              <p className="text-sm text-neutral-500 break-words line-clamp-2">{it.desc}</p>
-              (necesita el plugin de line-clamp) */}
             </div>
-
             <span className="font-semibold tabular-nums whitespace-nowrap">
               {formatPriceSafe(it.price) || " "}
             </span>
@@ -269,6 +257,8 @@ function MenuSectionPosterMulti({
     chunks.push(section.items.slice(i, i + chunkSize));
   }
 
+  const isDiscounts = cleanId(section.id) === "descuentos";
+
   return (
     <section id={section.id} className="scroll-mt-20">
       <div className="mx-auto max-w-3xl px-4 py-8">
@@ -279,20 +269,29 @@ function MenuSectionPosterMulti({
         {chunks.map((itemsChunk, idx) => (
           <div key={idx} className="mb-7 last:mb-0">
             {posterSrcs[idx] && (
-              <div className="rounded-2xl overflow-hidden ring-1 ring-black/10 shadow-sm bg-white">
-                <img
-                  src={posterSrcs[idx]}
-                  alt={posterAlt}
-                  className="w-full h-auto object-cover"
-                  loading="lazy"
-                />
+              <div className={isDiscounts ? "flex justify-center" : undefined}>
+                <div
+                  className={[
+                    "rounded-2xl overflow-hidden ring-1 ring-black/10 shadow-sm bg-white",
+                    // 👇 Mucho más chico en móvil, escalando de forma contenida
+                    isDiscounts
+                      ? "w-full mx-auto max-w-[340px] sm:max-w-[420px] md:max-w-[520px]"
+                      : "",
+                  ].join(" ")}
+                >
+                  <img
+                    src={posterSrcs[idx]}
+                    alt={posterAlt}
+                    className={isDiscounts ? "w-full h-auto object-contain" : "w-full h-auto object-cover"}
+                    loading="lazy"
+                  />
+                </div>
               </div>
             )}
 
             {!!itemsChunk.length && (
               <ul className="mt-5 rounded-2xl bg-white shadow-sm ring-1 ring-black/5 divide-y divide-neutral-200">
                 {itemsChunk.map((it, i) => (
-                  // --- Dentro de MenuSectionPosterMulti, donde renderizás cada item ---
                   <li
                     key={i}
                     className="flex items-start justify-between gap-4 p-4"
@@ -307,7 +306,6 @@ function MenuSectionPosterMulti({
                         </p>
                       )}
                     </div>
-
                     <span className="font-semibold tabular-nums whitespace-nowrap">
                       {formatPriceSafe(it.price) || " "}
                     </span>
@@ -382,6 +380,7 @@ export default function YpfMenuPage() {
 
   /* --------- Filtros/overrides por estación --------- */
   const POSTERS: Record<string, { posterSrcs: string[] }> = {
+    descuentos: { posterSrcs: ["/acaDescuento.png"] },
     cafeteria: { posterSrcs: ["/listadocafeteria.png"] },
     cafeteriafull: { posterSrcs: ["/productosFull.jpg"] },
     desayunoamericano: { posterSrcs: ["/desayunoamericano.jpg"] },
