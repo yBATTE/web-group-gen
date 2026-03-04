@@ -199,6 +199,7 @@ export const MENU_POSTERS: Record<
 > = {
   cafeteria: { posterSrcs: ["/listadocafeteria.png"], chunkSize: 6 },
   cafetriafull: { posterSrcs: ["/productosFull.jpg"], chunkSize: 6 },
+  menugen:   { posterSrcs: ["/menugen.png"],          chunkSize: 6 },
   comidas:   { posterSrcs: ["/listadocomida.png"],    chunkSize: 6 },
   hamburguesas: {
     posterSrcs: [
