@@ -183,6 +183,7 @@ export const MENU_TABS: { id: string; label: string }[] = [
   { id: "cafeteria",     label: "Cafetería" },
   { id: "cafes",         label: "Cafés" },
   { id: "panaderia",     label: "Panadería" },
+  { id: "menugen",       label: "Menú Gen" },
   { id: "comidas",       label: "Comidas • Combos + bebida" },
   { id: "hamburguesas",  label: "Hamburguesas" },
   { id: "ensaladas",     label: "Ensaladas" },

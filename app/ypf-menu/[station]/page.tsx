@@ -380,10 +380,10 @@ export default function YpfMenuPage() {
 
   /* --------- Filtros/overrides por estación --------- */
   const POSTERS: Record<string, { posterSrcs: string[] }> = {
-    descuentos: { posterSrcs: ["/acaDescuento.png"] },
     cafeteria: { posterSrcs: ["/listadocafeteria.png"] },
     cafeteriafull: { posterSrcs: ["/productosFull.jpg"] },
     desayunoamericano: { posterSrcs: ["/desayunoamericano.jpg"] },
+    menugen: { posterSrcs: ["/menu-gen.jpg"] },
     comidas: { posterSrcs: ["/listadocomida.png"] },
     panaderia: { posterSrcs: ["/listadopanaderia.png"] },
     hamburguesas: {
