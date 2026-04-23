@@ -6,64 +6,95 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 import type { MenuDoc, MenuSection } from "@/lib/menu-types";
 import { DEFAULT_MENU } from "@/lib/menu-data";
-import { STATIONS } from "@/lib/stations";
+import { STATIONS, type StationSlug } from "@/lib/stations";
 
 /* ---------------- helpers ---------------- */
-const isValidStation = (slug: string) =>
+const isValidStation = (slug: string): slug is StationSlug =>
   !!STATIONS.find((s) => s.slug === slug);
 
-const normalizeStation = (raw?: string | null) => {
+const normalizeStation = (raw?: string | null): StationSlug => {
   const slug = String(raw ?? "").toLowerCase();
   return isValidStation(slug) ? slug : STATIONS[0].slug;
 };
 
-// id con tipado correcto
 const docIdFor = (station: string): `menu:${string}` =>
   `menu:${station}` as `menu:${string}`;
 
 function toStr(v: unknown, def = ""): string {
   return typeof v === "string" ? v : def;
 }
+
 function toNum(v: unknown, def = 3): number {
   const n = Number(v);
   return Number.isFinite(n) ? n : def;
 }
 
-/** Normaliza el payload recibido (tipos y campos mínimos) */
+function toStrArray(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  return v
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 function normalizeSections(input: unknown): MenuSection[] {
   if (!Array.isArray(input)) return [];
+
   return input.map((s: any) => {
     const items = Array.isArray(s?.items) ? s.items : [];
+    const posterSrcs = toStrArray(s?.posterSrcs);
+    const posterPublicIds = toStrArray(s?.posterPublicIds);
+
     return {
       id: toStr(s?.id),
       title: toStr(s?.title),
       chunkSize: toNum(s?.chunkSize, 3),
       items: items.map((it: any) => ({
         name: toStr(it?.name),
-        desc: toStr(it?.desc, undefined as any),
-        price: toStr(it?.price), // soporta "14900" o "14900/15700"
+        desc: typeof it?.desc === "string" ? it.desc : "",
+        price: toStr(it?.price),
       })),
+      ...(posterSrcs.length ? { posterSrcs } : {}),
+      ...(posterPublicIds.length ? { posterPublicIds } : {}),
     } satisfies MenuSection;
   });
 }
 
+async function getSessionStation(): Promise<StationSlug | null> {
+  const session = await getServerSession(authOptions);
+  const station = (session?.user as any)?.station;
+  return typeof station === "string" && isValidStation(station)
+    ? station
+    : null;
+}
+
 /* ===================== GET ===================== */
-/** Devuelve el menú de la estación. Si no existe, lo siembra. */
+/**
+ * Público: usa ?station=...
+ * Admin logueado: si no viene station, usa la station de la sesión
+ */
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const station = normalizeStation(searchParams.get("station"));
+
+  const sessionStation = await getSessionStation();
+  const requestedStation = searchParams.get("station");
+
+  const station =
+    sessionStation && !requestedStation
+      ? sessionStation
+      : normalizeStation(requestedStation);
+
   const _id = docIdFor(station);
 
   const db = await getDb();
   const col = db.collection<MenuDoc>("configs");
 
-  // buscar el doc específico por estación
   let doc = await col.findOne({ _id });
 
-  // si no existe, sembrar (intentamos copiar de un legado "_id: menu" si estaba)
   if (!doc) {
     const legacy = await col.findOne({ _id: "menu" });
     const sections = legacy?.sections ?? DEFAULT_MENU;
+
     doc = {
       _id,
       sections,
@@ -78,15 +109,17 @@ export async function GET(req: Request) {
 }
 
 /* ===================== PUT ===================== */
-/** Actualiza el menú de la estación (protegido por sesión) */
+/**
+ * SOLO usa la estación de la sesión
+ */
 export async function PUT(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session) {
+  const station = (session?.user as any)?.station;
+
+  if (!session || typeof station !== "string" || !isValidStation(station)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { searchParams } = new URL(req.url);
-  const station = normalizeStation(searchParams.get("station"));
   const _id = docIdFor(station);
 
   let body: any;

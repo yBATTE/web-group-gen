@@ -1,36 +1,46 @@
-"use client"
+"use client";
 
-import type { MenuSection } from "@/lib/menu-data"
+import type { MenuSection } from "@/lib/menu-types";
 
 export default function MenuSectionPosterStack({
   section,
-  posterSrc,
+  posterSrcs = [],
   posterAlt = section.title,
 }: {
-  section: MenuSection
-  posterSrc: string         // ej: "/listadocafeteria.png" (archivo en /public)
-  posterAlt?: string
+  section: MenuSection;
+  posterSrcs?: string[];
+  posterAlt?: string;
 }) {
+  const posters = Array.isArray(posterSrcs)
+    ? posterSrcs.filter(Boolean)
+    : [];
+
   return (
     <section id={section.id} className="scroll-mt-24">
       <div className="mx-auto max-w-3xl px-4 py-8">
-        {/* Título */}
-        <h2 className="text-2xl font-semibold tracking-tight mb-4">
+        <h2 className="mb-4 text-2xl font-semibold tracking-tight">
           {section.title}
         </h2>
 
-        {/* Poster arriba */}
-        <div className="rounded-2xl overflow-hidden ring-1 ring-black/10 shadow-sm bg-white">
-          <img
-            src={posterSrc}
-            alt={posterAlt}
-            className="w-full h-auto object-cover"
-            loading="lazy"
-          />
-        </div>
+        {posters.length > 0 && (
+          <div className="space-y-4">
+            {posters.map((src, index) => (
+              <div
+                key={`${section.id}-poster-${index}`}
+                className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/10"
+              >
+                <img
+                  src={src}
+                  alt={`${posterAlt} ${index + 1}`}
+                  className="h-auto w-full object-cover"
+                  loading="lazy"
+                />
+              </div>
+            ))}
+          </div>
+        )}
 
-        {/* Lista de precios debajo */}
-        <ul className="mt-5 rounded-2xl bg-white shadow-sm ring-1 ring-black/5 divide-y divide-neutral-200">
+        <ul className="mt-5 divide-y divide-neutral-200 rounded-2xl bg-white shadow-sm ring-1 ring-black/5">
           {section.items.map((it, i) => (
             <li key={i} className="flex items-start justify-between gap-4 p-4">
               <div>
@@ -39,7 +49,8 @@ export default function MenuSectionPosterStack({
                   <p className="text-sm text-neutral-500">{it.desc}</p>
                 )}
               </div>
-              <span className="font-semibold tabular-nums whitespace-nowrap">
+
+              <span className="whitespace-nowrap font-semibold tabular-nums">
                 {it.price}
               </span>
             </li>
@@ -47,5 +58,5 @@ export default function MenuSectionPosterStack({
         </ul>
       </div>
     </section>
-  )
+  );
 }

@@ -1,22 +1,20 @@
-/* =========================
-   TIPOS
-========================= */
-export type MenuItem = { name: string; desc?: string; price: string }
-export type MenuSection = { id: string; title: string; items: MenuItem[] }
+// lib/menu-data.ts
+import type { MenuSection } from "@/lib/menu-types";
 
-export type PromoItem = {
-  id: string
-  mediaUrl: string
-  mediaType: "image" | "video"
-  title?: string
-  subtitle?: string
-  ctaText?: string
-  ctaHref?: string
-}
-
+export type { MenuItem, MenuSection } from "@/lib/menu-types";
 /* =========================
    PROMOS (carrusel)
 ========================= */
+export type PromoItem = {
+  id: string;
+  mediaUrl: string;
+  mediaType: "image" | "video"; 
+  title?: string;
+  subtitle?: string;
+  ctaText?: string;
+  ctaHref?: string;
+};
+
 export const PROMOS: PromoItem[] = [
   {
     id: "p1",
@@ -25,18 +23,17 @@ export const PROMOS: PromoItem[] = [
     title: "Disfrutá de beneficios todos los días",
     subtitle: "Pagá con la app y sumá puntos",
     ctaText: "Ver descuentos",
-    ctaHref: "#descuentos", // si no usás link, dejalo en "#" o quitá las props
+    ctaHref: "#descuentos",
   },
   { id: "p2", mediaUrl: "/croisant.png", mediaType: "image", title: "Promo Ypf" },
   { id: "p3", mediaUrl: "/avocadotoast.png", mediaType: "image" },
   { id: "p4", mediaUrl: "/comboshamburguesas.png", mediaType: "image" },
-]
+];
 
 /* =========================
    MENÚ (DEFAULT para seed en DB)
 ========================= */
 export const DEFAULT_MENU: MenuSection[] = [
-  /* Cafetería + combos del póster */
   {
     id: "cafeteria",
     title: "Cafetería",
@@ -76,10 +73,8 @@ export const DEFAULT_MENU: MenuSection[] = [
       { name: "Submarino", price: "$4.200" },
       { name: "Mocaccino", price: "$5.000" },
       { name: "Latte Vainilla", price: "$5.000" },
-    ]
+    ],
   },
-
-  /* Panadería */
   {
     id: "panaderia",
     title: "Panadería",
@@ -94,37 +89,30 @@ export const DEFAULT_MENU: MenuSection[] = [
       { name: "Tostado", desc: "Sin cafe", price: "$6.800" },
     ],
   },
-
-  /* Comidas • Combos + bebida */
   {
     id: "comidas",
     title: "Comidas • Combos + bebida",
     items: [
       { name: "Milanesa napolitana", desc: "Con papas rusticas y gaseosa", price: "$11.750" },
-      { name: "Pechuga de pollo",    desc: "Con arroz y gaseosa", price: "$11.750" },
-      { name: "Lasagna",             desc: "Con gaseosa",         price: "$11.750" },
-      { name: "Risotto de calabaza", desc: "Con gaseosa",         price: "$10.950" },
-      { name: "Carré de cerdo",      desc: "Con puré de batatas y gaseosa", price: "$11.750" },
-      { name: "Albóndigas portuguesas",  desc: "Con arroz y gaseosa", price: "$11.750" },
+      { name: "Pechuga de pollo", desc: "Con arroz y gaseosa", price: "$11.750" },
+      { name: "Lasagna", desc: "Con gaseosa", price: "$11.750" },
+      { name: "Risotto de calabaza", desc: "Con gaseosa", price: "$10.950" },
+      { name: "Carré de cerdo", desc: "Con puré de batatas y gaseosa", price: "$11.750" },
+      { name: "Albóndigas portuguesas", desc: "Con arroz y gaseosa", price: "$11.750" },
 
-      // ROLLS
       { name: "Roll Veggie", desc: "Con gaseosa", price: "$11.000" },
       { name: "Roll Jamón y Queso", desc: "Con gaseosa", price: "$11.000" },
       { name: "Roll Pollo", desc: "Con gaseosa", price: "$11.000" },
       { name: "Roll Peceto", desc: "Con gaseosa", price: "$11.000" },
 
-      // HAMBURGUESAS
-      { name: "Hamburguesa con queso",  desc: "Con papas y gaseosa", price: "$11.500" },
-      { name: "Hamburguesa doble",      desc: "Con papas", price: "$12.800" },
+      { name: "Hamburguesa con queso", desc: "Con papas y gaseosa", price: "$11.500" },
+      { name: "Hamburguesa doble", desc: "Con papas", price: "$12.800" },
 
-      // SANDWICHES Y CIABATTAS
       { name: "Ciabatta jamón y queso", price: "$10.050" },
-      { name: "Ciabatta multicereal",   price: "$9.750" },
-      { name: "Sándwich de milanesa",   desc: "Con papas y gaseosa", price: "$14.000" },
+      { name: "Ciabatta multicereal", price: "$9.750" },
+      { name: "Sándwich de milanesa", desc: "Con papas y gaseosa", price: "$14.000" },
     ],
   },
-
-  /* Hamburguesas */
   {
     id: "hamburguesas",
     title: "Hamburguesas",
@@ -137,22 +125,18 @@ export const DEFAULT_MENU: MenuSection[] = [
       { name: "Doble y triple max", desc: "Salsa picante, cheddar y jalapeños", price: "$14.900/$15.700" },
       { name: "Not Chicken Crispy", desc: "Barbacoa o palta", price: "$14.850" },
 
-      { name: "Hamburguesa con queso",  desc: "Con papas y gaseosa", price: "$11.500" },
-      { name: "Hamburguesa doble",      desc: "Con papas", price: "$12.800" },
+      { name: "Hamburguesa con queso", desc: "Con papas y gaseosa", price: "$11.500" },
+      { name: "Hamburguesa doble", desc: "Con papas", price: "$12.800" },
     ],
   },
-
-  /* Hamburguesas de pollo */
   {
     id: "hamburguesapollo",
     title: "Hamburguesas de pollo",
     items: [
       { name: "Hamburguesa Deluxe", desc: "Palta, panceta y cheddar", price: "$11.300" },
       { name: "Hamburguesa Simple", desc: "Lechuga tomate y cheddar", price: "$10.300" },
-    ]
+    ],
   },
-
-  /* Ensaladas */
   {
     id: "ensaladas",
     title: "Ensaladas",
@@ -161,8 +145,6 @@ export const DEFAULT_MENU: MenuSection[] = [
       { name: "Ensalada Chef", desc: "Lechuga criolla y morada, jamon cocido, queso y huevo duro", price: "$11.500" },
     ],
   },
-
-  /* Bebidas frías */
   {
     id: "bebidas",
     title: "Bebidas frías",
@@ -180,27 +162,27 @@ export const DEFAULT_MENU: MenuSection[] = [
    TABS VISIBLES (orden fijo)
 ========================= */
 export const MENU_TABS: { id: string; label: string }[] = [
-  { id: "cafeteria",     label: "Cafetería" },
-  { id: "cafes",         label: "Cafés" },
-  { id: "panaderia",     label: "Panadería" },
-  { id: "menugen",       label: "Menú Gen" },
-  { id: "comidas",       label: "Comidas • Combos + bebida" },
-  { id: "hamburguesas",  label: "Hamburguesas" },
-  { id: "ensaladas",     label: "Ensaladas" },
-  { id: "bebidas",       label: "Bebidas frías" },
+  { id: "cafeteria", label: "Cafetería" },
+  { id: "cafes", label: "Cafés" },
+  { id: "panaderia", label: "Panadería" },
+  { id: "menugen", label: "Menú Gen" },
+  { id: "comidas", label: "Comidas • Combos + bebida" },
+  { id: "hamburguesas", label: "Hamburguesas" },
+  { id: "ensaladas", label: "Ensaladas" },
+  { id: "bebidas", label: "Bebidas frías" },
 ];
 
 /* =========================
-   Posters por sección (opcional para la UI)
+   Posters por sección (fallback local)
 ========================= */
 export const MENU_POSTERS: Record<
   string,
   { posterSrcs: string[]; chunkSize?: number }
 > = {
   cafeteria: { posterSrcs: ["/listadocafeteria.png"], chunkSize: 6 },
-  cafetriafull: { posterSrcs: ["/productosFull.jpg"], chunkSize: 6 },
-  menugen:   { posterSrcs: ["/menugen.png"],          chunkSize: 6 },
-  comidas:   { posterSrcs: ["/listadocomida.png"],    chunkSize: 6 },
+  cafeteriafull: { posterSrcs: ["/productosFull.jpg"], chunkSize: 6 },
+  menugen: { posterSrcs: ["/menugen.png"], chunkSize: 6 },
+  comidas: { posterSrcs: ["/listadocomida.png"], chunkSize: 6 },
   hamburguesas: {
     posterSrcs: [
       "/comboshamburguesas.png",

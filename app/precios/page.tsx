@@ -11,14 +11,21 @@ type ApiDoc = {
   updatedAt?: string;
 };
 
-/* ---------------- utils ---------------- */
 const uid = () =>
   `s_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+
 const toNumber = (v: unknown, def = 3) => {
   const n = Number(v);
   return Number.isFinite(n) ? n : def;
 };
-const onlyDigits = (v: unknown) => String(v ?? "").replace(/[^\d]/g, "");
+
+const toStrArray = (v: unknown): string[] => {
+  if (!Array.isArray(v)) return [];
+  return v
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter(Boolean);
+};
 
 const EMPTY_ITEM: MenuItem = { name: "", desc: "", price: "" };
 const EMPTY_SECTION = (): MenuSection => ({
@@ -26,59 +33,62 @@ const EMPTY_SECTION = (): MenuSection => ({
   title: "",
   chunkSize: 3,
   items: [],
+  posterSrcs: [],
+  posterPublicIds: [],
 });
 
-const STATION_KEY = "station-slug";
+function normalizeSection(input: any): MenuSection {
+  return {
+    id: input?.id || uid(),
+    title: input?.title || "",
+    chunkSize: toNumber(input?.chunkSize, 3),
+    items: Array.isArray(input?.items)
+      ? input.items.map((it: any) => ({
+          name: it?.name || "",
+          desc: it?.desc || "",
+          price: String(it?.price ?? ""),
+        }))
+      : [],
+    posterSrcs: toStrArray(input?.posterSrcs),
+    posterPublicIds: toStrArray(input?.posterPublicIds),
+  };
+}
 
-/* ========================================================= */
 export default function PreciosPage() {
-  const { status } = useSession({ required: true });
+  const { data: session, status } = useSession({ required: true });
 
-  // estación seleccionada (persistida)
-  const [station, setStation] = useState<StationSlug>(
-    (typeof window !== "undefined" &&
-      (localStorage.getItem(STATION_KEY) as StationSlug)) ||
-      STATIONS[0].slug
-  );
+  const station = (session?.user as any)?.station as StationSlug | undefined;
 
   const [sections, setSections] = useState<MenuSection[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [uploadingSectionId, setUploadingSectionId] = useState<string | null>(null);
+  const [deletingPosterKey, setDeletingPosterKey] = useState<string | null>(null);
 
   const stationName = useMemo(
     () => STATIONS.find((s) => s.slug === station)?.name ?? "",
     [station]
   );
 
-  /* -------- carga del menú -------- */
   useEffect(() => {
-    localStorage.setItem(STATION_KEY, station);
+    if (!station) return;
+
     const load = async () => {
       setLoading(true);
       setError(null);
       setSections(null);
+
       try {
-        const res = await fetch(`/api/menu?station=${station}`, {
+        const res = await fetch(`/api/menu`, {
           cache: "no-store",
         });
+
         const json: ApiDoc | null = await res.json();
         if (!res.ok) throw new Error((json as any)?.error || res.statusText);
 
-        const loaded = Array.isArray(json?.sections) ? json!.sections : [];
-        const normalized: MenuSection[] = loaded.map((s) => ({
-          id: s.id || uid(),
-          title: s.title || "",
-          chunkSize: toNumber((s as any).chunkSize, 3),
-          items: Array.isArray(s.items)
-            ? s.items.map((it) => ({
-                name: it.name || "",
-                desc: it.desc || "",
-                price: String(it.price ?? ""), // permitimos "/" también
-              }))
-            : [],
-        }));
-        setSections(normalized);
+        const loaded = Array.isArray(json?.sections) ? json.sections : [];
+        setSections(loaded.map((section) => normalizeSection(section)));
       } catch (e: any) {
         console.error(e);
         setError(e?.message ?? "Error al cargar el menú");
@@ -86,14 +96,28 @@ export default function PreciosPage() {
         setLoading(false);
       }
     };
+
     load();
   }, [station]);
 
-  /* -------- handlers de edición -------- */
+  const replaceSectionById = (sectionId: string, nextSection: MenuSection) => {
+    setSections((prev) => {
+      if (!prev) return prev;
+      return prev.map((section) =>
+        section.id === sectionId ? normalizeSection(nextSection) : section
+      );
+    });
+  };
+
   const changeSec = (idx: number, patch: Partial<MenuSection>) => {
     setSections((prev) => {
       if (!prev) return prev;
-      const next = prev.map((s) => ({ ...s }));
+      const next = prev.map((s) => ({
+        ...s,
+        items: s.items.map((i) => ({ ...i })),
+        posterSrcs: [...(s.posterSrcs ?? [])],
+        posterPublicIds: [...(s.posterPublicIds ?? [])],
+      }));
       next[idx] = { ...next[idx], ...patch };
       return next;
     });
@@ -105,6 +129,8 @@ export default function PreciosPage() {
       const next = prev.map((s) => ({
         ...s,
         items: s.items.map((i) => ({ ...i })),
+        posterSrcs: [...(s.posterSrcs ?? [])],
+        posterPublicIds: [...(s.posterPublicIds ?? [])],
       }));
       next[si].items[ii] = { ...next[si].items[ii], ...patch };
       return next;
@@ -112,10 +138,7 @@ export default function PreciosPage() {
   };
 
   const addSection = () => {
-    setSections((prev) => {
-      const base = Array.isArray(prev) ? prev : [];
-      return [...base, EMPTY_SECTION()];
-    });
+    setSections((prev) => [...(prev ?? []), EMPTY_SECTION()]);
   };
 
   const removeSection = (si: number) => {
@@ -133,6 +156,8 @@ export default function PreciosPage() {
       const next = prev.map((s) => ({
         ...s,
         items: s.items.map((i) => ({ ...i })),
+        posterSrcs: [...(s.posterSrcs ?? [])],
+        posterPublicIds: [...(s.posterPublicIds ?? [])],
       }));
       next[si].items.push({ ...EMPTY_ITEM });
       return next;
@@ -142,7 +167,12 @@ export default function PreciosPage() {
   const removeItem = (si: number, ii: number) => {
     setSections((prev) => {
       if (!prev) return prev;
-      const next = prev.map((s) => ({ ...s, items: s.items.slice() }));
+      const next = prev.map((s) => ({
+        ...s,
+        items: s.items.slice(),
+        posterSrcs: [...(s.posterSrcs ?? [])],
+        posterPublicIds: [...(s.posterPublicIds ?? [])],
+      }));
       next[si].items.splice(ii, 1);
       return next;
     });
@@ -159,10 +189,62 @@ export default function PreciosPage() {
     });
   };
 
-  /* -------- guardar -------- */
+  const uploadPosters = async (sectionId: string, files: FileList | File[]) => {
+    const picked = Array.from(files);
+    if (!picked.length) return;
+
+    setUploadingSectionId(sectionId);
+
+    try {
+      const formData = new FormData();
+      formData.append("sectionId", sectionId);
+
+      for (const file of picked) {
+        formData.append("files", file);
+      }
+
+      const res = await fetch("/api/menu/posters", {
+        method: "POST",
+        body: formData,
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error || res.statusText);
+
+      replaceSectionById(sectionId, json.section);
+    } catch (e: any) {
+      alert(`Error al subir imágenes: ${e?.message ?? e}`);
+    } finally {
+      setUploadingSectionId(null);
+    }
+  };
+
+  const deletePoster = async (sectionId: string, posterIndex: number) => {
+    const key = `${sectionId}:${posterIndex}`;
+    setDeletingPosterKey(key);
+
+    try {
+      const res = await fetch("/api/menu/posters", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sectionId, posterIndex }),
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error || res.statusText);
+
+      replaceSectionById(sectionId, json.section);
+    } catch (e: any) {
+      alert(`Error al borrar imagen: ${e?.message ?? e}`);
+    } finally {
+      setDeletingPosterKey(null);
+    }
+  };
+
   const save = async () => {
     if (!sections) return;
     setSaving(true);
+
     try {
       const payload = {
         sections: sections.map((s) => ({
@@ -172,12 +254,16 @@ export default function PreciosPage() {
           items: s.items.map((it) => ({
             name: it.name || "",
             desc: it.desc || "",
-            price: String(it.price ?? ""), // se guarda tal cual (admite "14900/15700")
+            price: String(it.price ?? ""),
           })),
+          posterSrcs: Array.isArray(s.posterSrcs) ? s.posterSrcs : [],
+          posterPublicIds: Array.isArray(s.posterPublicIds)
+            ? s.posterPublicIds
+            : [],
         })),
       };
 
-      const res = await fetch(`/api/menu?station=${station}`, {
+      const res = await fetch(`/api/menu`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -185,6 +271,7 @@ export default function PreciosPage() {
 
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error || res.statusText);
+
       alert("¡Cambios guardados!");
     } catch (e: any) {
       alert(`Error al guardar: ${e?.message ?? e}`);
@@ -193,13 +280,13 @@ export default function PreciosPage() {
     }
   };
 
-  /* -------- UI -------- */
-  if (status === "loading") return <p style={{ padding: 16 }}>Autenticando…</p>;
+  if (status === "loading") {
+    return <p style={{ padding: 16 }}>Autenticando…</p>;
+  }
 
   return (
     <div className="light-scope" style={{ minHeight: "100dvh" }}>
-      <div style={{ maxWidth: 1000, margin: "0 auto", padding: 16 }}>
-        {/* selector de estación */}
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: 16 }}>
         <div
           style={{
             display: "flex",
@@ -208,24 +295,15 @@ export default function PreciosPage() {
             gap: 12,
           }}
         >
-          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <div>
             <h1>Editar precios</h1>
-            <select
-              value={station}
-              onChange={(e) => setStation(e.target.value as StationSlug)}
-              style={{
-                padding: "8px 10px",
-                borderRadius: 8,
-                border: "1px solid #d1d5db",
-              }}
-              title="Estación"
-            >
-              {STATIONS.map((s) => (
-                <option key={s.slug} value={s.slug}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
+            <p style={{ marginTop: 4, color: "#6b7280" }}>
+              Estación: <strong>{stationName}</strong>
+            </p>
+            <p style={{ marginTop: 4, color: "#6b7280", fontSize: 13 }}>
+              Las imágenes se guardan apenas se suben. El botón guardar sigue siendo
+              para títulos, items y precios.
+            </p>
           </div>
 
           <div style={{ display: "flex", gap: 8 }}>
@@ -236,10 +314,13 @@ export default function PreciosPage() {
                 color: "white",
                 borderRadius: 8,
                 padding: "8px 12px",
+                border: "none",
+                cursor: "pointer",
               }}
             >
               + Agregar sección
             </button>
+
             <button
               onClick={() => signOut({ callbackUrl: "/precios/login" })}
               style={{
@@ -247,6 +328,8 @@ export default function PreciosPage() {
                 color: "white",
                 borderRadius: 8,
                 padding: "8px 12px",
+                border: "none",
+                cursor: "pointer",
               }}
             >
               Cerrar sesión
@@ -254,13 +337,10 @@ export default function PreciosPage() {
           </div>
         </div>
 
-        <p style={{ marginTop: 4, color: "#6b7280" }}>
-          Estación: <strong>{stationName}</strong>
-        </p>
-
         {error && (
           <p style={{ color: "crimson", marginTop: 8 }}>Error: {error}</p>
         )}
+
         {!error && (loading || sections === null) && (
           <p style={{ marginTop: 8 }}>Cargando menú…</p>
         )}
@@ -298,6 +378,7 @@ export default function PreciosPage() {
                       Título de la sección{" "}
                       <span style={{ color: "#dc2626" }}>*</span>
                     </label>
+
                     <input
                       value={sec.title ?? ""}
                       onChange={(e) => changeSec(si, { title: e.target.value })}
@@ -324,6 +405,7 @@ export default function PreciosPage() {
                     >
                       ID (solo lectura)
                     </label>
+
                     <input
                       value={sec.id ?? ""}
                       readOnly
@@ -347,6 +429,7 @@ export default function PreciosPage() {
                     >
                       chunkSize
                     </label>
+
                     <input
                       type="number"
                       min={1}
@@ -376,12 +459,12 @@ export default function PreciosPage() {
                     <button
                       onClick={() => moveSection(si, si - 1)}
                       disabled={si === 0}
-                      title="Subir sección"
                       style={{
                         background: si === 0 ? "#e5e7eb" : "#f3f4f6",
                         color: "#111827",
                         borderRadius: 10,
                         padding: "10px 12px",
+                        border: "none",
                         cursor: si === 0 ? "not-allowed" : "pointer",
                       }}
                     >
@@ -391,7 +474,6 @@ export default function PreciosPage() {
                     <button
                       onClick={() => moveSection(si, si + 1)}
                       disabled={sections ? si === sections.length - 1 : true}
-                      title="Bajar sección"
                       style={{
                         background:
                           sections && si === sections.length - 1
@@ -400,6 +482,7 @@ export default function PreciosPage() {
                         color: "#111827",
                         borderRadius: 10,
                         padding: "10px 12px",
+                        border: "none",
                         cursor:
                           sections && si === sections.length - 1
                             ? "not-allowed"
@@ -416,6 +499,8 @@ export default function PreciosPage() {
                         color: "#111827",
                         borderRadius: 10,
                         padding: "10px 12px",
+                        border: "none",
+                        cursor: "pointer",
                       }}
                     >
                       Eliminar sección
@@ -423,7 +508,130 @@ export default function PreciosPage() {
                   </div>
                 </div>
 
-                {/* encabezados de tabla */}
+                <div style={{ marginTop: 18 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 12,
+                      marginBottom: 10,
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontWeight: 600 }}>Posters de la sección</div>
+                      <div style={{ fontSize: 13, color: "#6b7280" }}>
+                        Si no cargás nada en Mongo, después en la parte pública podés
+                        seguir usando fallback local.
+                      </div>
+                    </div>
+
+                    <label
+                      style={{
+                        background: "#111827",
+                        color: "white",
+                        borderRadius: 10,
+                        padding: "10px 12px",
+                        cursor:
+                          uploadingSectionId === sec.id ? "not-allowed" : "pointer",
+                        opacity: uploadingSectionId === sec.id ? 0.7 : 1,
+                      }}
+                    >
+                      {uploadingSectionId === sec.id
+                        ? "Subiendo..."
+                        : "Subir imágenes"}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        style={{ display: "none" }}
+                        disabled={uploadingSectionId === sec.id}
+                        onChange={async (e) => {
+                          const files = e.currentTarget.files;
+                          if (!files?.length) return;
+                          await uploadPosters(sec.id, files);
+                          e.currentTarget.value = "";
+                        }}
+                      />
+                    </label>
+                  </div>
+
+                  {Array.isArray(sec.posterSrcs) && sec.posterSrcs.length > 0 ? (
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+                        gap: 12,
+                        marginBottom: 8,
+                      }}
+                    >
+                      {sec.posterSrcs.map((src, posterIndex) => {
+                        const deleteKey = `${sec.id}:${posterIndex}`;
+                        return (
+                          <div
+                            key={deleteKey}
+                            style={{
+                              border: "1px solid #e5e7eb",
+                              borderRadius: 12,
+                              overflow: "hidden",
+                              background: "white",
+                            }}
+                          >
+                            <img
+                              src={src}
+                              alt={`${sec.title} ${posterIndex + 1}`}
+                              style={{
+                                width: "100%",
+                                height: 180,
+                                objectFit: "cover",
+                                display: "block",
+                              }}
+                            />
+
+                            <div style={{ padding: 10 }}>
+                              <button
+                                onClick={() => deletePoster(sec.id, posterIndex)}
+                                disabled={deletingPosterKey === deleteKey}
+                                style={{
+                                  width: "100%",
+                                  background: "#fee2e2",
+                                  color: "#b91c1c",
+                                  borderRadius: 10,
+                                  padding: "10px 12px",
+                                  border: "none",
+                                  cursor:
+                                    deletingPosterKey === deleteKey
+                                      ? "not-allowed"
+                                      : "pointer",
+                                  opacity:
+                                    deletingPosterKey === deleteKey ? 0.7 : 1,
+                                }}
+                              >
+                                {deletingPosterKey === deleteKey
+                                  ? "Borrando..."
+                                  : "Eliminar imagen"}
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        marginBottom: 8,
+                        border: "1px dashed #d1d5db",
+                        borderRadius: 12,
+                        padding: 14,
+                        color: "#6b7280",
+                        background: "#fafafa",
+                      }}
+                    >
+                      Esta sección todavía no tiene posters guardados en Mongo.
+                    </div>
+                  )}
+                </div>
+
                 <div
                   style={{
                     display: "grid",
@@ -442,7 +650,6 @@ export default function PreciosPage() {
                   <div></div>
                 </div>
 
-                {/* items */}
                 {sec.items.map((it, ii) => (
                   <div
                     key={`${sec.id}_${ii}`}
@@ -466,6 +673,7 @@ export default function PreciosPage() {
                         borderRadius: 10,
                       }}
                     />
+
                     <input
                       value={it.desc ?? ""}
                       onChange={(e) =>
@@ -479,6 +687,7 @@ export default function PreciosPage() {
                         borderRadius: 10,
                       }}
                     />
+
                     <input
                       type="text"
                       value={it.price ?? ""}
@@ -501,6 +710,8 @@ export default function PreciosPage() {
                         color: "#b91c1c",
                         borderRadius: 10,
                         padding: "10px 12px",
+                        border: "none",
+                        cursor: "pointer",
                       }}
                     >
                       borrar
@@ -516,6 +727,8 @@ export default function PreciosPage() {
                       color: "#075985",
                       borderRadius: 10,
                       padding: "10px 12px",
+                      border: "none",
+                      cursor: "pointer",
                     }}
                   >
                     + Agregar ítem
@@ -534,6 +747,8 @@ export default function PreciosPage() {
               color: "white",
               borderRadius: 10,
               padding: "12px 16px",
+              border: "none",
+              cursor: saving ? "wait" : "pointer",
               opacity: saving ? 0.7 : 1,
             }}
           >

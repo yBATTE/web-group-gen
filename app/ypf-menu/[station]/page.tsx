@@ -55,6 +55,7 @@ const getCachedMenu = (station: StationSlug): MenuSection[] | null => {
     return null;
   }
 };
+
 const setCachedMenu = (station: StationSlug, sections: MenuSection[]) => {
   try {
     localStorage.setItem(
@@ -74,19 +75,24 @@ const normalizeStation = (slug: string | undefined | null): StationSlug => {
 /* -------- Bloqueo “amistoso” en landscape -------- */
 function OrientationOverlay() {
   const [landscape, setLandscape] = useState(false);
+
   useEffect(() => {
     const mq = window.matchMedia("(orientation: landscape)");
     const onChange = () =>
       setLandscape(mq.matches && window.innerWidth <= 1024);
+
     onChange();
     mq.addEventListener?.("change", onChange);
     window.addEventListener("resize", onChange);
+
     return () => {
       mq.removeEventListener?.("change", onChange);
       window.removeEventListener("resize", onChange);
     };
   }, []);
+
   if (!landscape) return null;
+
   return (
     <div className="fixed inset-0 z-[100] bg-[#0033A0] text-white flex flex-col items-center justify-center p-6 text-center">
       <div className="text-2xl font-bold mb-2">Girá el teléfono</div>
@@ -104,7 +110,10 @@ function TinySkeleton() {
           <div className="h-5 w-40 bg-neutral-200 rounded mb-3 animate-pulse" />
           <div className="rounded-2xl bg-white ring-1 ring-black/5 divide-y divide-neutral-200">
             {[0, 1, 2].map((i) => (
-              <div key={i} className="p-4 flex items-center justify-between gap-4">
+              <div
+                key={i}
+                className="p-4 flex items-center justify-between gap-4"
+              >
                 <div className="flex-1">
                   <div className="h-4 w-48 bg-neutral-200 rounded animate-pulse" />
                   <div className="h-3 w-32 bg-neutral-100 rounded mt-2 animate-pulse" />
@@ -134,6 +143,7 @@ function PromoCarousel({
         .map((it) => ({ ...it, src: driveImage(it.mediaUrl) })),
     [items]
   );
+
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
@@ -194,7 +204,6 @@ function PromoCarousel({
           ))}
         </div>
 
-        {/* dots */}
         <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-2">
           {images.map((_, i) => (
             <button
@@ -215,10 +224,14 @@ function PromoCarousel({
 /* ---------------- Lista simple ---------------- */
 function Section({ section }: { section: MenuSection }) {
   return (
-    <section id={section.id} className="max-w-3xl mx-auto px-4 py-8 scroll-mt-20">
+    <section
+      id={section.id}
+      className="max-w-3xl mx-auto px-4 py-8 scroll-mt-20"
+    >
       <h2 className="text-2xl font-semibold tracking-tight mb-4">
         {section.title}
       </h2>
+
       <ul className="rounded-2xl bg-white shadow-sm ring-1 ring-black/5 divide-y divide-neutral-200">
         {section.items.map((it, i) => (
           <li key={i} className="flex items-start justify-between gap-4 p-4">
@@ -230,6 +243,7 @@ function Section({ section }: { section: MenuSection }) {
                 </p>
               )}
             </div>
+
             <span className="font-semibold tabular-nums whitespace-nowrap">
               {formatPriceSafe(it.price) || " "}
             </span>
@@ -273,7 +287,6 @@ function MenuSectionPosterMulti({
                 <div
                   className={[
                     "rounded-2xl overflow-hidden ring-1 ring-black/10 shadow-sm bg-white",
-                    // 👇 Mucho más chico en móvil, escalando de forma contenida
                     isDiscounts
                       ? "w-full mx-auto max-w-[340px] sm:max-w-[420px] md:max-w-[520px]"
                       : "",
@@ -282,7 +295,11 @@ function MenuSectionPosterMulti({
                   <img
                     src={posterSrcs[idx]}
                     alt={posterAlt}
-                    className={isDiscounts ? "w-full h-auto object-contain" : "w-full h-auto object-cover"}
+                    className={
+                      isDiscounts
+                        ? "w-full h-auto object-contain"
+                        : "w-full h-auto object-cover"
+                    }
                     loading="lazy"
                   />
                 </div>
@@ -306,6 +323,7 @@ function MenuSectionPosterMulti({
                         </p>
                       )}
                     </div>
+
                     <span className="font-semibold tabular-nums whitespace-nowrap">
                       {formatPriceSafe(it.price) || " "}
                     </span>
@@ -357,6 +375,7 @@ export default function YpfMenuPage() {
         const res = await fetch(`/api/menu?station=${station}`, {
           cache: "no-store",
         });
+
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data?.sections)) {
@@ -429,10 +448,10 @@ export default function YpfMenuPage() {
     [visibleSections]
   );
 
-  // PROMOS por estación: en delivery, vacío para ocultar carrusel
   const PROMOS_BY_STATION: Partial<Record<StationSlug, PromoItem[]>> = {
     delivery: [],
   };
+
   const promos: PromoItem[] = PROMOS_BY_STATION.hasOwnProperty(station)
     ? PROMOS_BY_STATION[station] ?? []
     : PROMOS;
@@ -450,7 +469,6 @@ export default function YpfMenuPage() {
     <>
       <OrientationOverlay />
 
-      {/* Header */}
       <header
         className="fixed top-0 left-0 right-0 z-50 bg-[#0033A0] text-white shadow"
         style={{ paddingTop: "env(safe-area-inset-top)" }}
@@ -475,7 +493,6 @@ export default function YpfMenuPage() {
         </div>
       </header>
 
-      {/* Backdrop + sheet */}
       <div
         className={`fixed inset-0 z-40 transition-opacity duration-200 ${
           menuOpen
@@ -484,6 +501,7 @@ export default function YpfMenuPage() {
         }`}
         onClick={() => setMenuOpen(false)}
       />
+
       <div
         className={`fixed inset-x-0 bottom-0 z-50 rounded-t-2xl bg-white shadow-2xl pb-[env(safe-area-inset-bottom)] transition-transform duration-300 ${
           menuOpen ? "translate-y-0" : "translate-y-full pointer-events-none"
@@ -500,6 +518,7 @@ export default function YpfMenuPage() {
               Cerrar
             </button>
           </div>
+
           <div className="mt-3 grid grid-cols-2 gap-2">
             {tabs.map((t) => (
               <button
@@ -514,30 +533,30 @@ export default function YpfMenuPage() {
         </div>
       </div>
 
-      {/* Promos: sólo si hay para la estación */}
+      <div className="h-14" />
+
       {promos.length > 0 && (
         <section className="py-4">
           <PromoCarousel items={promos} intervalMs={5000} />
         </section>
       )}
 
-      {/* Contenido / skeleton */}
       {loading && !getCachedMenu(station) ? (
         <TinySkeleton />
       ) : (
         (visibleSections ?? []).map((section) => {
           const key = cleanId(section.id);
 
-          // 1) desde DB si tu API manda `posters`
-          const postersFromDb: string[] = ((section as any).posters ?? []).map(
-            (p: string) => driveImage(p)
-          );
+          // 1) posters desde Mongo / Cloudinary
+          const postersFromDb: string[] = Array.isArray(section.posterSrcs)
+            ? section.posterSrcs.map((p) => driveImage(p)).filter(Boolean)
+            : [];
 
           // 2) override por estación
           const postersStation =
             POSTERS_BY_STATION[station]?.[key]?.posterSrcs ?? [];
 
-          // 3) fallback global
+          // 3) fallback local
           const postersFallback = POSTERS[key]?.posterSrcs ?? [];
 
           const posters =
@@ -547,8 +566,7 @@ export default function YpfMenuPage() {
               ? postersStation
               : postersFallback;
 
-          const chunk =
-            (section as any).chunkSize ?? DEFAULT_CHUNK_BY_ID[key] ?? 3;
+          const chunk = section.chunkSize ?? DEFAULT_CHUNK_BY_ID[key] ?? 3;
 
           return posters.length ? (
             <MenuSectionPosterMulti

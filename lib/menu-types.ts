@@ -1,11 +1,19 @@
 // lib/menu-types.ts
-export type MenuItem = { name: string; desc?: string; price: string };
+export type MenuItem = {
+  name: string;
+  desc?: string;
+  price: string;
+};
 
 export type MenuSection = {
   id: string;
   title: string;
   chunkSize?: number;
-  items: { name: string; desc?: string; price: string }[];
+  items: MenuItem[];
+
+  // posters subidos a Cloudinary y guardados en Mongo
+  posterSrcs?: string[];
+  posterPublicIds?: string[];
 };
 
 /**
@@ -14,8 +22,8 @@ export type MenuSection = {
  * Para compatibilidad, aceptamos también el legado "_id: 'menu'".
  */
 export type MenuDoc = {
-  _id: `menu:${string}` | "menu";  // ⟵ clave: ya no es literal "menu" solamente
-  station?: string;                // opcional (si querés guardarlo)
+  _id: `menu:${string}` | "menu";
+  station?: string;
   sections: MenuSection[];
   updatedAt?: string;
 };
