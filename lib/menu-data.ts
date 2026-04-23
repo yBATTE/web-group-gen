@@ -27,7 +27,6 @@ export const PROMOS: PromoItem[] = [
   },
   { id: "p2", mediaUrl: "/croisant.png", mediaType: "image", title: "Promo Ypf" },
   { id: "p3", mediaUrl: "/avocadotoast.png", mediaType: "image" },
-  { id: "p4", mediaUrl: "/comboshamburguesas.png", mediaType: "image" },
 ];
 
 /* =========================
