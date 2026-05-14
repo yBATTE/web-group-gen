@@ -28,6 +28,7 @@ const toStrArray = (v: unknown): string[] => {
 };
 
 const EMPTY_ITEM: MenuItem = { name: "", desc: "", price: "" };
+
 const EMPTY_SECTION = (): MenuSection => ({
   id: uid(),
   title: "",
@@ -54,6 +55,25 @@ function normalizeSection(input: any): MenuSection {
   };
 }
 
+function buildPayload(sections: MenuSection[]) {
+  return {
+    sections: sections.map((s) => ({
+      id: s.id || uid(),
+      title: s.title || "",
+      chunkSize: toNumber(s.chunkSize, 3),
+      items: s.items.map((it) => ({
+        name: it.name || "",
+        desc: it.desc || "",
+        price: String(it.price ?? ""),
+      })),
+      posterSrcs: Array.isArray(s.posterSrcs) ? s.posterSrcs : [],
+      posterPublicIds: Array.isArray(s.posterPublicIds)
+        ? s.posterPublicIds
+        : [],
+    })),
+  };
+}
+
 export default function PreciosPage() {
   const { data: session, status } = useSession({ required: true });
 
@@ -62,9 +82,14 @@ export default function PreciosPage() {
   const [sections, setSections] = useState<MenuSection[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [savingSectionId, setSavingSectionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [uploadingSectionId, setUploadingSectionId] = useState<string | null>(null);
-  const [deletingPosterKey, setDeletingPosterKey] = useState<string | null>(null);
+  const [uploadingSectionId, setUploadingSectionId] = useState<string | null>(
+    null
+  );
+  const [deletingPosterKey, setDeletingPosterKey] = useState<string | null>(
+    null
+  );
 
   const stationName = useMemo(
     () => STATIONS.find((s) => s.slug === station)?.name ?? "",
@@ -112,13 +137,16 @@ export default function PreciosPage() {
   const changeSec = (idx: number, patch: Partial<MenuSection>) => {
     setSections((prev) => {
       if (!prev) return prev;
+
       const next = prev.map((s) => ({
         ...s,
         items: s.items.map((i) => ({ ...i })),
         posterSrcs: [...(s.posterSrcs ?? [])],
         posterPublicIds: [...(s.posterPublicIds ?? [])],
       }));
+
       next[idx] = { ...next[idx], ...patch };
+
       return next;
     });
   };
@@ -126,13 +154,16 @@ export default function PreciosPage() {
   const changeItem = (si: number, ii: number, patch: Partial<MenuItem>) => {
     setSections((prev) => {
       if (!prev) return prev;
+
       const next = prev.map((s) => ({
         ...s,
         items: s.items.map((i) => ({ ...i })),
         posterSrcs: [...(s.posterSrcs ?? [])],
         posterPublicIds: [...(s.posterPublicIds ?? [])],
       }));
+
       next[si].items[ii] = { ...next[si].items[ii], ...patch };
+
       return next;
     });
   };
@@ -142,10 +173,15 @@ export default function PreciosPage() {
   };
 
   const removeSection = (si: number) => {
+    const ok = confirm("¿Seguro que querés eliminar esta sección?");
+    if (!ok) return;
+
     setSections((prev) => {
       if (!prev) return prev;
+
       const next = prev.slice();
       next.splice(si, 1);
+
       return next;
     });
   };
@@ -153,13 +189,16 @@ export default function PreciosPage() {
   const addItem = (si: number) => {
     setSections((prev) => {
       if (!prev) return prev;
+
       const next = prev.map((s) => ({
         ...s,
         items: s.items.map((i) => ({ ...i })),
         posterSrcs: [...(s.posterSrcs ?? [])],
         posterPublicIds: [...(s.posterPublicIds ?? [])],
       }));
+
       next[si].items.push({ ...EMPTY_ITEM });
+
       return next;
     });
   };
@@ -167,13 +206,16 @@ export default function PreciosPage() {
   const removeItem = (si: number, ii: number) => {
     setSections((prev) => {
       if (!prev) return prev;
+
       const next = prev.map((s) => ({
         ...s,
         items: s.items.slice(),
         posterSrcs: [...(s.posterSrcs ?? [])],
         posterPublicIds: [...(s.posterPublicIds ?? [])],
       }));
+
       next[si].items.splice(ii, 1);
+
       return next;
     });
   };
@@ -182,9 +224,11 @@ export default function PreciosPage() {
     setSections((prev) => {
       if (!prev) return prev;
       if (to < 0 || to >= prev.length) return prev;
+
       const next = prev.slice();
       const [moved] = next.splice(from, 1);
       next.splice(to, 0, moved);
+
       return next;
     });
   };
@@ -220,6 +264,9 @@ export default function PreciosPage() {
   };
 
   const deletePoster = async (sectionId: string, posterIndex: number) => {
+    const ok = confirm("¿Seguro que querés eliminar esta imagen?");
+    if (!ok) return;
+
     const key = `${sectionId}:${posterIndex}`;
     setDeletingPosterKey(key);
 
@@ -241,38 +288,31 @@ export default function PreciosPage() {
     }
   };
 
+  const saveMenu = async (
+    nextSections: MenuSection[],
+    successMessage = "¡Cambios guardados!"
+  ) => {
+    const payload = buildPayload(nextSections);
+
+    const res = await fetch(`/api/menu`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const json = await res.json();
+    if (!res.ok) throw new Error(json?.error || res.statusText);
+
+    alert(successMessage);
+  };
+
   const save = async () => {
     if (!sections) return;
+
     setSaving(true);
 
     try {
-      const payload = {
-        sections: sections.map((s) => ({
-          id: s.id || uid(),
-          title: s.title || "",
-          chunkSize: toNumber(s.chunkSize, 3),
-          items: s.items.map((it) => ({
-            name: it.name || "",
-            desc: it.desc || "",
-            price: String(it.price ?? ""),
-          })),
-          posterSrcs: Array.isArray(s.posterSrcs) ? s.posterSrcs : [],
-          posterPublicIds: Array.isArray(s.posterPublicIds)
-            ? s.posterPublicIds
-            : [],
-        })),
-      };
-
-      const res = await fetch(`/api/menu`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const json = await res.json();
-      if (!res.ok) throw new Error(json?.error || res.statusText);
-
-      alert("¡Cambios guardados!");
+      await saveMenu(sections, "¡Todos los cambios fueron guardados!");
     } catch (e: any) {
       alert(`Error al guardar: ${e?.message ?? e}`);
     } finally {
@@ -280,157 +320,539 @@ export default function PreciosPage() {
     }
   };
 
+  const saveSection = async (sectionId: string) => {
+    if (!sections) return;
+
+    setSavingSectionId(sectionId);
+
+    try {
+      await saveMenu(sections, "¡Sección guardada!");
+    } catch (e: any) {
+      alert(`Error al guardar la sección: ${e?.message ?? e}`);
+    } finally {
+      setSavingSectionId(null);
+    }
+  };
+
   if (status === "loading") {
-    return <p style={{ padding: 16 }}>Autenticando…</p>;
+    return (
+      <div className="light-scope precios-page">
+        <p className="page-loading">Autenticando…</p>
+      </div>
+    );
   }
 
+  const isSavingAny = saving || savingSectionId !== null;
+
   return (
-    <div className="light-scope" style={{ minHeight: "100dvh" }}>
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: 16 }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: 12,
-          }}
-        >
+    <div className="light-scope precios-page">
+      <style jsx global>{`
+        .precios-page {
+          min-height: 100dvh;
+          background: #f8fafc;
+          color: #111827;
+        }
+
+        .precios-container {
+          width: 100%;
+          max-width: 1100px;
+          margin: 0 auto;
+          padding: 24px 16px 90px;
+        }
+
+        .page-loading {
+          padding: 16px;
+        }
+
+        .page-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 16px;
+          margin-bottom: 18px;
+        }
+
+        .page-title {
+          margin: 0;
+          font-size: 28px;
+          line-height: 1.1;
+          letter-spacing: -0.03em;
+        }
+
+        .page-subtitle {
+          margin: 8px 0 0;
+          color: #6b7280;
+          font-size: 14px;
+        }
+
+        .page-note {
+          margin: 6px 0 0;
+          color: #6b7280;
+          font-size: 13px;
+          max-width: 620px;
+          line-height: 1.45;
+        }
+
+        .header-actions {
+          display: flex;
+          gap: 10px;
+          flex-wrap: wrap;
+          justify-content: flex-end;
+        }
+
+        .section-card {
+          margin-top: 20px;
+          border: 1px solid #e5e7eb;
+          border-radius: 18px;
+          padding: 18px;
+          background: #ffffff;
+          box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+        }
+
+        .section-top {
+          display: grid;
+          grid-template-columns: minmax(0, 1.2fr) minmax(210px, 0.9fr) 130px auto;
+          gap: 12px;
+          align-items: end;
+        }
+
+        .field {
+          min-width: 0;
+        }
+
+        .field-label {
+          display: block;
+          margin-bottom: 6px;
+          font-size: 12px;
+          font-weight: 600;
+          color: #6b7280;
+        }
+
+        .required {
+          color: #dc2626;
+        }
+
+        .input {
+          width: 100%;
+          min-height: 44px;
+          padding: 11px 12px;
+          border: 1px solid #d1d5db;
+          border-radius: 12px;
+          background: #ffffff;
+          color: #111827;
+          font-size: 15px;
+          outline: none;
+        }
+
+        .input:focus {
+          border-color: #2563eb;
+          box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+        }
+
+        .input-readonly {
+          border-color: #e5e7eb;
+          background: #f9fafb;
+          color: #6b7280;
+        }
+
+        .input-error {
+          border-color: #ef4444;
+          background: #fef2f2;
+        }
+
+        .section-actions {
+          display: flex;
+          gap: 8px;
+          justify-content: flex-end;
+          align-items: center;
+          flex-wrap: wrap;
+        }
+
+        .btn {
+          min-height: 44px;
+          border: none;
+          border-radius: 12px;
+          padding: 10px 14px;
+          font-size: 14px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: transform 0.08s ease, opacity 0.08s ease;
+          white-space: nowrap;
+        }
+
+        .btn:active {
+          transform: scale(0.98);
+        }
+
+        .btn:disabled {
+          cursor: not-allowed;
+          opacity: 0.65;
+        }
+
+        .btn-primary {
+          background: #2563eb;
+          color: white;
+        }
+
+        .btn-green {
+          background: #10b981;
+          color: white;
+        }
+
+        .btn-dark {
+          background: #111827;
+          color: white;
+        }
+
+        .btn-red {
+          background: #ef4444;
+          color: white;
+        }
+
+        .btn-gray {
+          background: #f3f4f6;
+          color: #111827;
+        }
+
+        .btn-danger-soft {
+          background: #fee2e2;
+          color: #b91c1c;
+        }
+
+        .btn-info-soft {
+          background: #e0f2fe;
+          color: #075985;
+        }
+
+        .poster-area {
+          margin-top: 20px;
+        }
+
+        .poster-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          margin-bottom: 12px;
+        }
+
+        .poster-title {
+          font-weight: 800;
+          font-size: 15px;
+        }
+
+        .poster-desc {
+          margin-top: 4px;
+          font-size: 13px;
+          color: #6b7280;
+          line-height: 1.45;
+        }
+
+        .poster-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+          gap: 12px;
+          margin-bottom: 8px;
+        }
+
+        .poster-card {
+          border: 1px solid #e5e7eb;
+          border-radius: 14px;
+          overflow: hidden;
+          background: white;
+        }
+
+        .poster-img {
+          width: 100%;
+          height: 180px;
+          object-fit: cover;
+          display: block;
+          background: #f3f4f6;
+        }
+
+        .poster-card-actions {
+          padding: 10px;
+        }
+
+        .empty-poster {
+          margin-bottom: 8px;
+          border: 1px dashed #d1d5db;
+          border-radius: 14px;
+          padding: 14px;
+          color: #6b7280;
+          background: #fafafa;
+          font-size: 14px;
+          line-height: 1.45;
+        }
+
+        .items-head {
+          display: grid;
+          grid-template-columns: 1.2fr 1.4fr 0.6fr 96px;
+          gap: 12px;
+          margin-top: 18px;
+          font-size: 13px;
+          font-weight: 600;
+          color: #6b7280;
+        }
+
+        .item-row {
+          display: grid;
+          grid-template-columns: 1.2fr 1.4fr 0.6fr 96px;
+          gap: 12px;
+          margin-top: 10px;
+          align-items: end;
+        }
+
+        .mobile-label {
+          display: none;
+        }
+
+        .section-footer {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          flex-wrap: wrap;
+          margin-top: 16px;
+          padding-top: 16px;
+          border-top: 1px solid #f1f5f9;
+        }
+
+        .bottom-save {
+          position: sticky;
+          bottom: 0;
+          margin-top: 24px;
+          padding: 14px 0;
+          background: linear-gradient(
+            to top,
+            #f8fafc 70%,
+            rgba(248, 250, 252, 0)
+          );
+          z-index: 10;
+        }
+
+        .bottom-save-inner {
+          display: flex;
+          justify-content: flex-end;
+        }
+
+        .error-message {
+          color: crimson;
+          margin-top: 8px;
+          font-size: 14px;
+        }
+
+        .loading-message {
+          margin-top: 8px;
+          color: #6b7280;
+        }
+
+        @media (max-width: 820px) {
+          .precios-container {
+            padding: 18px 12px 90px;
+          }
+
+          .page-header {
+            flex-direction: column;
+            align-items: stretch;
+          }
+
+          .page-title {
+            font-size: 24px;
+          }
+
+          .header-actions {
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+          }
+
+          .header-actions .btn {
+            width: 100%;
+          }
+
+          .section-card {
+            padding: 14px;
+            border-radius: 16px;
+          }
+
+          .section-top {
+            grid-template-columns: 1fr;
+          }
+
+          .section-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            width: 100%;
+          }
+
+          .section-actions .btn {
+            width: 100%;
+          }
+
+          .section-actions .btn-save-section,
+          .section-actions .btn-delete-section {
+            grid-column: 1 / -1;
+          }
+
+          .poster-head {
+            flex-direction: column;
+            align-items: stretch;
+          }
+
+          .poster-head .btn,
+          .poster-head label {
+            width: 100%;
+            text-align: center;
+          }
+
+          .poster-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .poster-img {
+            height: 210px;
+          }
+
+          .items-head {
+            display: none;
+          }
+
+          .item-row {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-top: 14px;
+            padding: 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            background: #f9fafb;
+          }
+
+          .mobile-label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #6b7280;
+          }
+
+          .item-row .btn {
+            width: 100%;
+          }
+
+          .section-footer {
+            display: grid;
+            grid-template-columns: 1fr;
+          }
+
+          .section-footer .btn {
+            width: 100%;
+          }
+
+          .bottom-save-inner {
+            display: block;
+          }
+
+          .bottom-save-inner .btn {
+            width: 100%;
+            min-height: 50px;
+            font-size: 15px;
+          }
+        }
+
+        @media (max-width: 430px) {
+          .precios-container {
+            padding-left: 10px;
+            padding-right: 10px;
+          }
+
+          .header-actions {
+            grid-template-columns: 1fr;
+          }
+
+          .section-actions {
+            grid-template-columns: 1fr;
+          }
+
+          .poster-img {
+            height: 190px;
+          }
+        }
+      `}</style>
+
+      <div className="precios-container">
+        <div className="page-header">
           <div>
-            <h1>Editar precios</h1>
-            <p style={{ marginTop: 4, color: "#6b7280" }}>
+            <h1 className="page-title">Editar precios</h1>
+
+            <p className="page-subtitle">
               Estación: <strong>{stationName}</strong>
             </p>
-            <p style={{ marginTop: 4, color: "#6b7280", fontSize: 13 }}>
-              Las imágenes se guardan apenas se suben. El botón guardar sigue siendo
-              para títulos, items y precios.
+
+            <p className="page-note">
+              Las imágenes se guardan apenas se suben. Usá el botón de cada
+              sección para guardar rápido títulos, productos y precios.
             </p>
           </div>
 
-          <div style={{ display: "flex", gap: 8 }}>
-            <button
-              onClick={addSection}
-              style={{
-                background: "#10b981",
-                color: "white",
-                borderRadius: 8,
-                padding: "8px 12px",
-                border: "none",
-                cursor: "pointer",
-              }}
-            >
+          <div className="header-actions">
+            <button className="btn btn-green" onClick={addSection}>
               + Agregar sección
             </button>
 
             <button
+              className="btn btn-red"
               onClick={() => signOut({ callbackUrl: "/precios/login" })}
-              style={{
-                background: "#ef4444",
-                color: "white",
-                borderRadius: 8,
-                padding: "8px 12px",
-                border: "none",
-                cursor: "pointer",
-              }}
             >
               Cerrar sesión
             </button>
           </div>
         </div>
 
-        {error && (
-          <p style={{ color: "crimson", marginTop: 8 }}>Error: {error}</p>
-        )}
+        {error && <p className="error-message">Error: {error}</p>}
 
         {!error && (loading || sections === null) && (
-          <p style={{ marginTop: 8 }}>Cargando menú…</p>
+          <p className="loading-message">Cargando menú…</p>
         )}
 
         {Array.isArray(sections) &&
           sections.map((sec, si) => {
             const titleInvalid = !sec.title.trim();
+            const sectionIsSaving = savingSectionId === sec.id;
 
             return (
-              <div
-                key={sec.id}
-                style={{
-                  marginTop: 28,
-                  border: "1px solid #e5e7eb",
-                  borderRadius: 12,
-                  padding: 16,
-                }}
-              >
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 280px 160px auto",
-                    gap: 12,
-                    alignItems: "center",
-                  }}
-                >
-                  <div>
-                    <label
-                      style={{
-                        display: "block",
-                        fontSize: 12,
-                        color: "#6b7280",
-                      }}
-                    >
+              <div className="section-card" key={sec.id}>
+                <div className="section-top">
+                  <div className="field">
+                    <label className="field-label">
                       Título de la sección{" "}
-                      <span style={{ color: "#dc2626" }}>*</span>
+                      <span className="required">*</span>
                     </label>
 
                     <input
+                      className={`input ${titleInvalid ? "input-error" : ""}`}
                       value={sec.title ?? ""}
                       onChange={(e) => changeSec(si, { title: e.target.value })}
-                      placeholder="Ej: Hamburguesas"
-                      style={{
-                        width: "100%",
-                        padding: 10,
-                        border: `1px solid ${
-                          titleInvalid ? "#ef4444" : "#d1d5db"
-                        }`,
-                        borderRadius: 10,
-                        background: titleInvalid ? "#fef2f2" : "white",
-                      }}
+                      placeholder="Ej: Cafetería"
                     />
                   </div>
 
-                  <div>
-                    <label
-                      style={{
-                        display: "block",
-                        fontSize: 12,
-                        color: "#6b7280",
-                      }}
-                    >
-                      ID (solo lectura)
-                    </label>
+                  <div className="field">
+                    <label className="field-label">ID solo lectura</label>
 
                     <input
+                      className="input input-readonly"
                       value={sec.id ?? ""}
                       readOnly
-                      style={{
-                        width: "100%",
-                        padding: 10,
-                        border: "1px solid #e5e7eb",
-                        background: "#f9fafb",
-                        borderRadius: 10,
-                      }}
                     />
                   </div>
 
-                  <div>
-                    <label
-                      style={{
-                        display: "block",
-                        fontSize: 12,
-                        color: "#6b7280",
-                      }}
-                    >
-                      chunkSize
-                    </label>
+                  <div className="field">
+                    <label className="field-label">chunkSize</label>
 
                     <input
+                      className="input"
                       type="number"
                       min={1}
                       value={Number(sec.chunkSize ?? 3)}
@@ -439,107 +861,71 @@ export default function PreciosPage() {
                           chunkSize: toNumber(e.target.value, 3),
                         })
                       }
-                      style={{
-                        width: "100%",
-                        padding: 10,
-                        border: "1px solid #d1d5db",
-                        borderRadius: 10,
-                      }}
                     />
                   </div>
 
-                  <div
-                    style={{
-                      alignSelf: "end",
-                      textAlign: "right",
-                      display: "flex",
-                      gap: 8,
-                    }}
-                  >
+                  <div className="section-actions">
                     <button
+                      className="btn btn-gray"
                       onClick={() => moveSection(si, si - 1)}
-                      disabled={si === 0}
-                      style={{
-                        background: si === 0 ? "#e5e7eb" : "#f3f4f6",
-                        color: "#111827",
-                        borderRadius: 10,
-                        padding: "10px 12px",
-                        border: "none",
-                        cursor: si === 0 ? "not-allowed" : "pointer",
-                      }}
+                      disabled={si === 0 || isSavingAny}
+                      title="Subir sección"
                     >
                       ↑
                     </button>
 
                     <button
+                      className="btn btn-gray"
                       onClick={() => moveSection(si, si + 1)}
-                      disabled={sections ? si === sections.length - 1 : true}
-                      style={{
-                        background:
-                          sections && si === sections.length - 1
-                            ? "#e5e7eb"
-                            : "#f3f4f6",
-                        color: "#111827",
-                        borderRadius: 10,
-                        padding: "10px 12px",
-                        border: "none",
-                        cursor:
-                          sections && si === sections.length - 1
-                            ? "not-allowed"
-                            : "pointer",
-                      }}
+                      disabled={si === sections.length - 1 || isSavingAny}
+                      title="Bajar sección"
                     >
                       ↓
                     </button>
 
                     <button
+                      className="btn btn-primary btn-save-section"
+                      onClick={() => saveSection(sec.id)}
+                      disabled={isSavingAny || !sections}
+                    >
+                      {sectionIsSaving ? "Guardando..." : "Guardar sección"}
+                    </button>
+
+                    <button
+                      className="btn btn-danger-soft btn-delete-section"
                       onClick={() => removeSection(si)}
-                      style={{
-                        background: "#f3f4f6",
-                        color: "#111827",
-                        borderRadius: 10,
-                        padding: "10px 12px",
-                        border: "none",
-                        cursor: "pointer",
-                      }}
+                      disabled={isSavingAny}
                     >
                       Eliminar sección
                     </button>
                   </div>
                 </div>
 
-                <div style={{ marginTop: 18 }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: 12,
-                      marginBottom: 10,
-                    }}
-                  >
+                <div className="poster-area">
+                  <div className="poster-head">
                     <div>
-                      <div style={{ fontWeight: 600 }}>Posters de la sección</div>
-                      <div style={{ fontSize: 13, color: "#6b7280" }}>
-                        Si no cargás nada en Mongo, después en la parte pública podés
-                        seguir usando fallback local.
+                      <div className="poster-title">Posters de la sección</div>
+
+                      <div className="poster-desc">
+                        Si no cargás nada en Mongo, después en la parte pública
+                        podés seguir usando fallback local.
                       </div>
                     </div>
 
                     <label
+                      className="btn btn-dark"
                       style={{
-                        background: "#111827",
-                        color: "white",
-                        borderRadius: 10,
-                        padding: "10px 12px",
                         cursor:
-                          uploadingSectionId === sec.id ? "not-allowed" : "pointer",
+                          uploadingSectionId === sec.id
+                            ? "not-allowed"
+                            : "pointer",
                         opacity: uploadingSectionId === sec.id ? 0.7 : 1,
                       }}
                     >
                       {uploadingSectionId === sec.id
                         ? "Subiendo..."
                         : "Subir imágenes"}
+
                       <input
                         type="file"
                         accept="image/*"
@@ -549,7 +935,9 @@ export default function PreciosPage() {
                         onChange={async (e) => {
                           const files = e.currentTarget.files;
                           if (!files?.length) return;
+
                           await uploadPosters(sec.id, files);
+
                           e.currentTarget.value = "";
                         }}
                       />
@@ -557,55 +945,26 @@ export default function PreciosPage() {
                   </div>
 
                   {Array.isArray(sec.posterSrcs) && sec.posterSrcs.length > 0 ? (
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
-                        gap: 12,
-                        marginBottom: 8,
-                      }}
-                    >
+                    <div className="poster-grid">
                       {sec.posterSrcs.map((src, posterIndex) => {
                         const deleteKey = `${sec.id}:${posterIndex}`;
+
                         return (
-                          <div
-                            key={deleteKey}
-                            style={{
-                              border: "1px solid #e5e7eb",
-                              borderRadius: 12,
-                              overflow: "hidden",
-                              background: "white",
-                            }}
-                          >
+                          <div className="poster-card" key={deleteKey}>
                             <img
+                              className="poster-img"
                               src={src}
                               alt={`${sec.title} ${posterIndex + 1}`}
-                              style={{
-                                width: "100%",
-                                height: 180,
-                                objectFit: "cover",
-                                display: "block",
-                              }}
                             />
 
-                            <div style={{ padding: 10 }}>
+                            <div className="poster-card-actions">
                               <button
-                                onClick={() => deletePoster(sec.id, posterIndex)}
+                                className="btn btn-danger-soft"
+                                onClick={() =>
+                                  deletePoster(sec.id, posterIndex)
+                                }
                                 disabled={deletingPosterKey === deleteKey}
-                                style={{
-                                  width: "100%",
-                                  background: "#fee2e2",
-                                  color: "#b91c1c",
-                                  borderRadius: 10,
-                                  padding: "10px 12px",
-                                  border: "none",
-                                  cursor:
-                                    deletingPosterKey === deleteKey
-                                      ? "not-allowed"
-                                      : "pointer",
-                                  opacity:
-                                    deletingPosterKey === deleteKey ? 0.7 : 1,
-                                }}
+                                style={{ width: "100%" }}
                               >
                                 {deletingPosterKey === deleteKey
                                   ? "Borrando..."
@@ -617,143 +976,104 @@ export default function PreciosPage() {
                       })}
                     </div>
                   ) : (
-                    <div
-                      style={{
-                        marginBottom: 8,
-                        border: "1px dashed #d1d5db",
-                        borderRadius: 12,
-                        padding: 14,
-                        color: "#6b7280",
-                        background: "#fafafa",
-                      }}
-                    >
+                    <div className="empty-poster">
                       Esta sección todavía no tiene posters guardados en Mongo.
                     </div>
                   )}
                 </div>
 
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1.2fr 1.4fr 0.6fr 96px",
-                    gap: 12,
-                    marginTop: 16,
-                    fontSize: 13,
-                    color: "#6b7280",
-                  }}
-                >
+                <div className="items-head">
                   <div>Nombre</div>
-                  <div>Descripción (opcional)</div>
+                  <div>Descripción opcional</div>
                   <div>
-                    Precio <span style={{ color: "#dc2626" }}>*</span>
+                    Precio <span className="required">*</span>
                   </div>
                   <div></div>
                 </div>
 
                 {sec.items.map((it, ii) => (
-                  <div
-                    key={`${sec.id}_${ii}`}
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1.2fr 1.4fr 0.6fr 96px",
-                      gap: 12,
-                      marginTop: 10,
-                    }}
-                  >
-                    <input
-                      value={it.name ?? ""}
-                      onChange={(e) =>
-                        changeItem(si, ii, { name: e.target.value })
-                      }
-                      placeholder="Nombre…"
-                      style={{
-                        width: "100%",
-                        padding: 10,
-                        border: "1px solid #d1d5db",
-                        borderRadius: 10,
-                      }}
-                    />
+                  <div className="item-row" key={`${sec.id}_${ii}`}>
+                    <div className="field">
+                      <label className="mobile-label">Nombre</label>
 
-                    <input
-                      value={it.desc ?? ""}
-                      onChange={(e) =>
-                        changeItem(si, ii, { desc: e.target.value })
-                      }
-                      placeholder="Descripción…"
-                      style={{
-                        width: "100%",
-                        padding: 10,
-                        border: "1px solid #d1d5db",
-                        borderRadius: 10,
-                      }}
-                    />
+                      <input
+                        className="input"
+                        value={it.name ?? ""}
+                        onChange={(e) =>
+                          changeItem(si, ii, { name: e.target.value })
+                        }
+                        placeholder="Nombre…"
+                      />
+                    </div>
 
-                    <input
-                      type="text"
-                      value={it.price ?? ""}
-                      onChange={(e) =>
-                        changeItem(si, ii, { price: e.target.value })
-                      }
-                      placeholder="14900 o 14900/15700"
-                      style={{
-                        width: "100%",
-                        padding: 10,
-                        border: "1px solid #d1d5db",
-                        borderRadius: 10,
-                      }}
-                    />
+                    <div className="field">
+                      <label className="mobile-label">Descripción</label>
+
+                      <input
+                        className="input"
+                        value={it.desc ?? ""}
+                        onChange={(e) =>
+                          changeItem(si, ii, { desc: e.target.value })
+                        }
+                        placeholder="Descripción…"
+                      />
+                    </div>
+
+                    <div className="field">
+                      <label className="mobile-label">Precio</label>
+
+                      <input
+                        className="input"
+                        type="text"
+                        value={it.price ?? ""}
+                        onChange={(e) =>
+                          changeItem(si, ii, { price: e.target.value })
+                        }
+                        placeholder="14900 o 14900/15700"
+                      />
+                    </div>
 
                     <button
+                      className="btn btn-danger-soft"
                       onClick={() => removeItem(si, ii)}
-                      style={{
-                        background: "#fee2e2",
-                        color: "#b91c1c",
-                        borderRadius: 10,
-                        padding: "10px 12px",
-                        border: "none",
-                        cursor: "pointer",
-                      }}
+                      disabled={isSavingAny}
                     >
-                      borrar
+                      Borrar
                     </button>
                   </div>
                 ))}
 
-                <div style={{ marginTop: 12 }}>
+                <div className="section-footer">
                   <button
+                    className="btn btn-info-soft"
                     onClick={() => addItem(si)}
-                    style={{
-                      background: "#e0f2fe",
-                      color: "#075985",
-                      borderRadius: 10,
-                      padding: "10px 12px",
-                      border: "none",
-                      cursor: "pointer",
-                    }}
+                    disabled={isSavingAny}
                   >
                     + Agregar ítem
+                  </button>
+
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => saveSection(sec.id)}
+                    disabled={isSavingAny || !sections}
+                  >
+                    {sectionIsSaving ? "Guardando..." : "Guardar sección"}
                   </button>
                 </div>
               </div>
             );
           })}
 
-        <div style={{ marginTop: 24 }}>
-          <button
-            onClick={save}
-            disabled={!sections || saving}
-            style={{
-              background: "#2563eb",
-              color: "white",
-              borderRadius: 10,
-              padding: "12px 16px",
-              border: "none",
-              cursor: saving ? "wait" : "pointer",
-              opacity: saving ? 0.7 : 1,
-            }}
-          >
-            {saving ? "Guardando..." : "Guardar cambios"}
-          </button>
+        <div className="bottom-save">
+          <div className="bottom-save-inner">
+            <button
+              className="btn btn-primary"
+              onClick={save}
+              disabled={!sections || isSavingAny}
+            >
+              {saving ? "Guardando..." : "Guardar todo"}
+            </button>
+          </div>
         </div>
       </div>
     </div>
